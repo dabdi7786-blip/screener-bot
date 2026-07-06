@@ -342,15 +342,14 @@ def handle_scan_command(ids: list, chat_id: str):
 
         save_status(ids, matches)
 
-        url = None
+        url = os.getenv("PAGES_URL", "").rstrip("/") or None
         try:
             from dashboard_generator import generate
-            from uploader import upload
             date_only = datetime.now().strftime("%d.%m.%Y")
-            html_path = generate(dashboard_data, {}, date_only)
-            url = upload(html_path)
+            generate(dashboard_data, {}, date_only)
         except Exception as e:
             print(f"Дашборд: ошибка — {e}")
+            url = None
 
         if url:
             rating_lines.append("")

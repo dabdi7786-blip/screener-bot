@@ -5,5 +5,7 @@ __pycache__/
 *.log
 .DS_Store
 output/*.html
+docs/
 all_stocks.csv
 .claude/settings.local.json
+.claude/scheduled_tasks.lock

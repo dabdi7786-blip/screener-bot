@@ -10,6 +10,7 @@ from pathlib import Path
 from screener_bot import CAT_EMOJI
 
 OUTPUT_DIR = Path(__file__).parent / "output"
+DOCS_DIR   = Path(__file__).parent / "docs"   # публикуется на GitHub Pages
 
 
 def _safe(v, fmt=".1f", suffix=""):
@@ -42,6 +43,10 @@ def generate(screener_results: dict, rates_data: dict, date_str: str = "") -> st
     fname = f"screener_{datetime.now().strftime('%Y%m%d')}.html"
     path  = OUTPUT_DIR / fname
     path.write_text(html, encoding="utf-8")
+
+    DOCS_DIR.mkdir(exist_ok=True)
+    (DOCS_DIR / "index.html").write_text(html, encoding="utf-8")
+
     return str(path)
 
 

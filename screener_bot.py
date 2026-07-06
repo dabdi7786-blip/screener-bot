@@ -844,19 +844,18 @@ def main():
     except Exception as e:
         print(f"Ставки: ошибка — {e}")
 
-    # ── Дашборд: генерация HTML + загрузка + deep-link на каждую вкладку ─────
+    # ── Дашборд: генерация HTML (публикуется на GitHub Pages сборкой workflow) ─
     print("\nГенерация дашборда...")
-    url = None
+    url = os.getenv("PAGES_URL", "").rstrip("/") or None
     try:
         from dashboard_generator import generate
-        from uploader import upload
         date_only = datetime.now().strftime("%d.%m.%Y")
         html_path = generate(dashboard_data, rates_raw, date_only)
         print(f"HTML: {html_path}")
-        url = upload(html_path)
-        print(f"Дашборд: {url}" if url else f"Загрузка не удалась — дашборд доступен локально: {html_path}")
+        print(f"Дашборд: {url}" if url else "PAGES_URL не задан — дашборд без ссылки")
     except Exception as e:
         print(f"Дашборд: ошибка — {e}")
+        url = None
 
     if url:
         rating_lines.append("")

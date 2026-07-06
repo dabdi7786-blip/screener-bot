@@ -53,5 +53,6 @@ jobs:
           for f in screener1_results.csv screener2_results.csv screener3_results.csv last_rates.json; do
             [ -f "$f" ] && git add "$f"
           done
+          [ -d docs ] && git add docs/
           git diff --cached --quiet || git commit -m "chore: update scan results [skip ci]"
           git push

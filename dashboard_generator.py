@@ -33,18 +33,25 @@ def generate(screener_results: dict, rates_data: dict, date_str: str = "") -> st
     """
     screener_results: {1: [(ticker, row_dict, score_dict, ta_dict), ...], 2: [...], 3: [...]}
     rates_data:       {"nbrk": {...}, "kase": {...}, "us": {...}, "bonds": {...}}
-    Returns path to generated HTML file.
+    Пишет docs/{YYYY-MM-DD}.html (архив) + docs/index.html (= сегодня, для GitHub Pages).
+    Returns path to generated HTML file (в output/, для локальной истории).
     """
     OUTPUT_DIR.mkdir(exist_ok=True)
+    DOCS_DIR.mkdir(exist_ok=True)
     if not date_str:
         date_str = datetime.now().strftime("%d.%m.%Y")
 
-    html = _build_html(screener_results, rates_data, date_str)
+    iso_date = datetime.now().strftime("%Y-%m-%d")
+    # Список дат для фильтра — уже заархивированные + сегодняшняя
+    dates = sorted({p.stem for p in DOCS_DIR.glob("????-??-??.html")} | {iso_date}, reverse=True)
+
+    html = _build_html(screener_results, rates_data, date_str, dates, iso_date)
+
     fname = f"screener_{datetime.now().strftime('%Y%m%d')}.html"
     path  = OUTPUT_DIR / fname
     path.write_text(html, encoding="utf-8")
 
-    DOCS_DIR.mkdir(exist_ok=True)
+    (DOCS_DIR / f"{iso_date}.html").write_text(html, encoding="utf-8")
     (DOCS_DIR / "index.html").write_text(html, encoding="utf-8")
 
     return str(path)
@@ -65,11 +72,23 @@ def _build_nav(screeners: dict) -> str:
     return "\n  ".join(buttons)
 
 
-def _build_html(screeners: dict, rates: dict, date_str: str) -> str:
-    sc_html  = _build_screeners_section(screeners)
-    rt_html  = _build_rates_section(rates)
-    nav_html = _build_nav(screeners)
-    total    = sum(len(v) for v in screeners.values())
+def _build_date_select(dates: list, current_date: str) -> str:
+    options = "".join(
+        f'<option value="{d}.html"{" selected" if d == current_date else ""}>{d}</option>'
+        for d in dates
+    )
+    return (
+        '<select id="dateSelect" onchange="location.href=this.value+location.hash" '
+        f'title="Выбрать дату">{options}</select>'
+    )
+
+
+def _build_html(screeners: dict, rates: dict, date_str: str, dates: list = None, current_date: str = "") -> str:
+    sc_html    = _build_screeners_section(screeners)
+    rt_html    = _build_rates_section(rates)
+    nav_html   = _build_nav(screeners)
+    date_select = _build_date_select(dates or [current_date], current_date) if dates else ""
+    total      = sum(len(v) for v in screeners.values())
 
     return f"""<!DOCTYPE html>
 <html lang="ru">
@@ -90,6 +109,7 @@ nav{{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24p
 .nav-btn{{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;transition:all .15s}}
 .nav-btn.active,.nav-btn:hover{{background:var(--acc);border-color:var(--acc);color:#fff}}
 .nav-count{{background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px}}
+#dateSelect{{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer}}
 .section{{display:none;padding:20px 24px}}
 .section.active{{display:block}}
 .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:16px}}
@@ -129,6 +149,7 @@ nav{{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24p
 <header>
   <h1>📊 Stock Screener</h1>
   <span class="meta">Дата: {date_str} · Акций: {total}</span>
+  {date_select}
 </header>
 <nav>
   {nav_html}

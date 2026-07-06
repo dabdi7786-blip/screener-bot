@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screener v2 — 27.06.2026</title>
+<style>
+:root {
+  --bg: #0F1117; --bg2: #1A1D27; --bg3: #22263A;
+  --text: #E2E8F0; --muted: #94A3B8; --border: #2D3748;
+  --green: #22C55E; --blue: #60A5FA; --amber: #F59E0B;
+  --purple: #A78BFA; --red: #F87171;
+  --accent: #3B82F6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+header .meta { color: var(--muted); font-size: 12px; }
+.controls { padding: 12px 24px; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.search { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px; width: 180px; outline: none; }
+.search:focus { border-color: var(--accent); }
+.filter-btn { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .15s; }
+.filter-btn:hover { color: var(--text); border-color: var(--accent); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+select.sector-filter { background: var(--bg3); border: 1px solid var(--border); color: var(--text); padding: 5px 10px; border-radius: 6px; font-size: 12px; outline: none; cursor: pointer; }
+.table-wrap { overflow-x: auto; padding: 0 24px 24px; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; min-width: 900px; }
+th { background: var(--bg2); color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { color: var(--text); }
+th .sort-arrow { margin-left: 4px; opacity: .4; }
+th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr.data-row { cursor: pointer; transition: background .1s; }
+tr.data-row:hover { background: var(--bg2); }
+tr.data-row.expanded { background: var(--bg2); }
+tr.detail-row td { padding: 0; }
+.detail-panel { background: var(--bg3); border-bottom: 2px solid var(--accent); padding: 20px 24px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.detail-col h4 { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
+.kv-table { width: 100%; }
+.kv-table tr td:first-child { color: var(--muted); font-size: 12px; padding: 3px 0; width: 55%; }
+.kv-table tr td:last-child { font-size: 13px; font-weight: 500; padding: 3px 0; }
+.ai-block { background: var(--bg2); border-left: 3px solid var(--accent); padding: 12px 14px; border-radius: 0 6px 6px 0; font-size: 13px; line-height: 1.6; color: var(--text); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.badge-green  { background: rgba(34,197,94,.15);  color: var(--green); }
+.badge-red    { background: rgba(248,113,113,.15); color: var(--red); }
+.badge-amber  { background: rgba(245,158,11,.15);  color: var(--amber); }
+.badge-blue   { background: rgba(96,165,250,.15);  color: var(--blue); }
+.badge-purple { background: rgba(167,139,250,.15); color: var(--purple); }
+.badge-gray   { background: rgba(148,163,184,.1);  color: var(--muted); }
+.score-bar { display: flex; align-items: center; gap: 8px; }
+.score-bar .bar { height: 6px; border-radius: 3px; background: var(--border); flex: 1; max-width: 80px; }
+.score-bar .fill { height: 100%; border-radius: 3px; }
+.no-results { text-align: center; padding: 60px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Screener v2</h1>
+  <span class="meta">Дата: 27.06.2026 · Тикеров: <span id="count">0</span></span>
+</header>
+<div class="controls">
+  <input class="search" id="search" placeholder="Поиск по тикеру..." oninput="applyFilters()">
+  <button class="filter-btn active" data-rating="all" onclick="setRatingFilter(this)">Все</button>
+  <button class="filter-btn" data-rating="Strong Buy" onclick="setRatingFilter(this)">Strong Buy</button>
+  <button class="filter-btn" data-rating="Buy+Watch" onclick="setRatingFilter(this)">Buy+Watch</button>
+  <button class="filter-btn" data-rating="Watch" onclick="setRatingFilter(this)">Watch</button>
+  <button class="filter-btn" data-rating="Wait" onclick="setRatingFilter(this)">Wait</button>
+  <button class="filter-btn" data-rating="Skip" onclick="setRatingFilter(this)">Skip</button>
+  <select class="sector-filter" id="sectorFilter" onchange="applyFilters()">
+    <option value="all">Все секторы</option>
+  </select>
+</div>
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th onclick="sortBy('rank')">#<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('ticker')">Тикер<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('name')">Компания<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('sector')">Сектор<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('rating')">Рейтинг<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('final_score')">Скор<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('rev_growth')">Rev G%<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('eps_growth')">EPS G%<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('gross_margin')">GM%<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('rsi')">RSI<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('rs_vs_etf')">RS vs ETF<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('trend')">Тренд<span class="sort-arrow">↕</span></th>
+        <th onclick="sortBy('short_pct')">Short%<span class="sort-arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div id="noResults" class="no-results" style="display:none">Ничего не найдено</div>
+</div>
+<script>
+const DATA = [{"ticker": "V", "name": "Visa Inc.", "sector": "financials", "price": 336.23, "market_cap": 558.04, "rev_growth": 0.171, "eps_growth": 0.355, "gross_margin": 0.97778, "op_margin": 0.67346, "fcf_margin": 0.48434120391952545, "net_income": 22033000448.0, "free_cashflow": 20839749632.0, "revenue": 43027001344.0, "fcf_conversion": 0.945842563802593, "debt_ebitda": 0.8, "roe": 0.60349, "rule_of_40": 65.5, "forward_pe": 22.620806, "peg": 1.46, "trailing_pe": 29.313862, "rsi": 61.09441521844624, "trend": "up", "macd_signal": "bullish", "rs_vs_etf": NaN, "volume_ratio": 1.8232000894492257, "ema9": 328.25297567121765, "ema21": 325.9853865075345, "ema50": 322.86242983078336, "insider_buy": 0, "insider_sell": 0, "short_pct": 1.28, "days_to_earnings": 32, "eps_beat_quarters": 4, "eps_surprise_avg": 3.2, "recent_upgrades": 0, "recent_downgrades": 0, "macro_multiplier": 1.0, "sector_score": 30, "sector_data": {"roe_pct": 60.3, "rev_growth_pct": 17.1, "eps_growth_pct": 35.5, "gross_margin_pct": 97.8, "sector": "financials"}, "eps_quality_score": 18.0, "eps_quality_data": {"eps_rev_divergence": false, "fcf_conversion": 0.95, "gross_margin_pct": 97.8, "debt_ebitda": 0.8, "score": 18.0}, "tech_score": 14.0, "tech_data": {"rsi": 61.1, "macd": "bullish", "trend": "up", "ema9": 328.25, "ema21": 325.99, "ema50": 322.86, "rs_vs_etf": NaN, "etf": "XLF", "vol_ratio": 1.82, "score": 14.0}, "inst_score": 8.5, "inst_data": {"insider_buy": 0, "insider_sell": 0, "note": "no_edgar_data_neutral", "short_pct": 1.28, "score": 8.5}, "catalyst_score": 4.0, "catalyst_data": {"days_to_earnings": 32, "eps_beat_quarters": 4, "eps_surprise_avg": 3.2, "recent_upgrades": 0, "recent_downgrades": 0, "score": 4.0}, "final_score": 74.5, "rating": "Strong Buy", "ai_summary": "", "error": "", "macro_data": {"vix": 18.4, "dxy_chg_pct": 2.43, "yield_10y": 4.37, "multiplier": 1.0}}, {"ticker": "NVDA", "name": "NVIDIA Corporation", "sector": "semiconductor", "price": 192.53, "market_cap": 4663.27, "rev_growth": 0.852, "eps_growth": 2.145, "gross_margin": 0.74144995, "op_margin": 0.65596, "fcf_margin": 0.18279099614571304, "net_income": 159612993536.0, "free_cashflow": 46335873024.0, "revenue": 253491003392.0, "fcf_conversion": 0.29030138460218247, "debt_ebitda": 0.08, "roe": 1.14288, "rule_of_40": 103.5, "forward_pe": 15.125293, "peg": 0.61, "trailing_pe": 29.48392, "rsi": 32.67311885360213, "trend": "neutral", "macd_signal": "bearish", "rs_vs_etf": NaN, "volume_ratio": 1.0463995550883185, "ema9": 203.37941093685131, "ema21": 207.15770768189543, "ema50": 205.89345778557202, "insider_buy": 0, "insider_sell": 0, "short_pct": 1.29, "days_to_earnings": 61, "eps_beat_quarters": 4, "eps_surprise_avg": 4.6, "recent_upgrades": 0, "recent_downgrades": 0, "macro_multiplier": 1.0, "sector_score": 30, "sector_data": {"rev_growth_pct": 85.2, "gross_margin_pct": 74.1, "op_margin_pct": 65.6, "eps_growth_pct": 214.5, "sector": "semiconductor"}, "eps_quality_score": 12.0, "eps_quality_data": {"eps_rev_divergence": false, "fcf_conversion": 0.29, "gross_margin_pct": 74.1, "debt_ebitda": 0.08, "score": 12.0}, "tech_score": 0.0, "tech_data": {"rsi": 32.7, "macd": "bearish", "trend": "neutral", "ema9": 203.38, "ema21": 207.16, "ema50": 205.89, "rs_vs_etf": NaN, "etf": "SOXX", "vol_ratio": 1.05, "score": 0.0}, "inst_score": 8.5, "inst_data": {"insider_buy": 0, "insider_sell": 0, "note": "no_edgar_data_neutral", "short_pct": 1.29, "score": 8.5}, "catalyst_score": 4.0, "catalyst_data": {"days_to_earnings": 61, "eps_beat_quarters": 4, "eps_surprise_avg": 4.6, "recent_upgrades": 0, "recent_downgrades": 0, "score": 4.0}, "final_score": 54.5, "rating": "Buy+Watch", "ai_summary": "", "error": "", "macro_data": {"vix": 18.4, "dxy_chg_pct": 2.43, "yield_10y": 4.37, "multiplier": 1.0}}, {"ticker": "INCY", "name": "Incyte Corporation", "sector": "pharma", "price": 113.75, "market_cap": 22.73, "rev_growth": 0.209, "eps_growth": 0.838, "gross_margin": 0.52766, "op_margin": 0.25552, "fcf_margin": 0.104246396769207, "net_income": 1431777024.0, "free_cashflow": 558867008.0, "revenue": 5361019904.0, "fcf_conversion": 0.39033103523248047, "debt_ebitda": 0.03, "roe": 0.30823, "rule_of_40": 31.3, "forward_pe": 12.367949, "peg": 0.36, "trailing_pe": 16.066385, "rsi": 59.75194171093885, "trend": "up", "macd_signal": "bullish", "rs_vs_etf": NaN, "volume_ratio": 1.6268845974562276, "ema9": 104.23909225967135, "ema21": 102.14161425968625, "ema50": 99.88509039880823, "insider_buy": 0, "insider_sell": 0, "short_pct": 9.1, "days_to_earnings": 31, "eps_beat_quarters": 3, "eps_surprise_avg": 18.4, "recent_upgrades": 1, "recent_downgrades": 0, "macro_multiplier": 1.0, "sector_score": 21.0, "sector_data": {"rev_growth_pct": 20.9, "gross_margin_pct": 52.8, "fcf_margin_pct": 10.4, "eps_growth_pct": 83.8, "sector": "pharma"}, "eps_quality_score": 4.0, "eps_quality_data": {"eps_rev_divergence": true, "fcf_conversion": 0.39, "gross_margin_pct": 52.8, "debt_ebitda": 0.03, "score": 4.0}, "tech_score": 14.0, "tech_data": {"rsi": 59.8, "macd": "bullish", "trend": "up", "ema9": 104.24, "ema21": 102.14, "ema50": 99.89, "rs_vs_etf": NaN, "etf": "XBI", "vol_ratio": 1.63, "score": 14.0}, "inst_score": 7.5, "inst_data": {"insider_buy": 0, "insider_sell": 0, "note": "no_edgar_data_neutral", "short_pct": 9.1, "score": 7.5}, "catalyst_score": 5.0, "catalyst_data": {"days_to_earnings": 31, "eps_beat_quarters": 3, "eps_surprise_avg": 18.4, "recent_upgrades": 1, "recent_downgrades": 0, "score": 5.0}, "final_score": 51.5, "rating": "Buy+Watch", "ai_summary": "", "error": "", "macro_data": {"vix": 18.4, "dxy_chg_pct": 2.43, "yield_10y": 4.37, "multiplier": 1.0}}];
+
+const RATING_ORDER = {"Strong Buy":0,"Buy+Watch":1,"Watch":2,"Wait":3,"Skip":4};
+const RATING_CLASS = {
+  "Strong Buy":"badge-green","Buy+Watch":"badge-blue",
+  "Watch":"badge-amber","Wait":"badge-purple","Skip":"badge-red"
+};
+const TREND_LABEL = {"up":"▲ Восходящий","down":"▼ Нисходящий","neutral":"→ Нейтральный"};
+const TREND_CLASS = {"up":"badge-green","down":"badge-red","neutral":"badge-gray"};
+
+let sortKey = "final_score", sortAsc = false;
+let ratingFilter = "all", openTicker = null;
+
+// Populate sector filter
+const sectors = [...new Set(DATA.map(d => d.sector))].sort();
+const sf = document.getElementById("sectorFilter");
+sectors.forEach(s => { const o = document.createElement("option"); o.value = s; o.textContent = s; sf.appendChild(o); });
+
+function pct(v) { return v != null ? (v >= 0 ? "+" : "") + v.toFixed(1) + "%" : "—"; }
+function fmt(v, dec=1) { return v != null ? v.toFixed(dec) : "—"; }
+
+function ratingBadge(r) {
+  return `<span class="badge ${RATING_CLASS[r]||'badge-gray'}">${r}</span>`;
+}
+
+function scoreBar(score) {
+  const pct = Math.min(100, Math.max(0, score / 95 * 100));
+  const color = score >= 65 ? "var(--green)" : score >= 50 ? "var(--blue)" : score >= 38 ? "var(--amber)" : score >= 25 ? "var(--purple)" : "var(--red)";
+  return `<div class="score-bar"><strong>${score.toFixed(1)}</strong><div class="bar"><div class="fill" style="width:${pct}%;background:${color}"></div></div></div>`;
+}
+
+function setRatingFilter(btn) {
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  ratingFilter = btn.dataset.rating;
+  applyFilters();
+}
+
+function sortBy(key) {
+  if (sortKey === key) { sortAsc = !sortAsc; }
+  else { sortKey = key; sortAsc = key === "ticker" || key === "name" || key === "sector"; }
+  document.querySelectorAll("th").forEach(th => th.classList.remove("sorted"));
+  const idx = ["rank","ticker","name","sector","rating","final_score","rev_growth","eps_growth","gross_margin","rsi","rs_vs_etf","trend","short_pct"].indexOf(key);
+  if (idx >= 0) document.querySelectorAll("th")[idx].classList.add("sorted");
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById("search").value.toLowerCase().trim();
+  const sector = document.getElementById("sectorFilter").value;
+  let rows = DATA.slice();
+  if (ratingFilter !== "all") rows = rows.filter(d => d.rating === ratingFilter);
+  if (sector !== "all") rows = rows.filter(d => d.sector === sector);
+  if (search) rows = rows.filter(d => d.ticker.toLowerCase().includes(search) || d.name.toLowerCase().includes(search));
+  rows.sort((a, b) => {
+    let va = a[sortKey], vb = b[sortKey];
+    if (sortKey === "rating") { va = RATING_ORDER[va]??9; vb = RATING_ORDER[vb]??9; }
+    if (va == null) va = sortAsc ? Infinity : -Infinity;
+    if (vb == null) vb = sortAsc ? Infinity : -Infinity;
+    if (typeof va === "string") return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortAsc ? va - vb : vb - va;
+  });
+  render(rows);
+}
+
+function render(rows) {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  document.getElementById("count").textContent = rows.length;
+  document.getElementById("noResults").style.display = rows.length ? "none" : "block";
+  rows.forEach((d, i) => {
+    const tr = document.createElement("tr");
+    tr.className = "data-row" + (openTicker === d.ticker ? " expanded" : "");
+    tr.dataset.ticker = d.ticker;
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td><strong>${d.ticker}</strong></td>
+      <td style="color:var(--muted)">${d.name}</td>
+      <td><span class="badge badge-gray">${d.sector}</span></td>
+      <td>${ratingBadge(d.rating)}</td>
+      <td>${scoreBar(d.final_score)}</td>
+      <td>${pct(d.rev_growth != null ? d.rev_growth*100 : null)}</td>
+      <td>${pct(d.eps_growth != null ? d.eps_growth*100 : null)}</td>
+      <td>${d.gross_margin != null ? (d.gross_margin*100).toFixed(1)+"%" : "—"}</td>
+      <td style="color:${d.rsi<30?'var(--red)':d.rsi>70?'var(--amber)':'var(--green)'}">${fmt(d.rsi)}</td>
+      <td>${pct(d.rs_vs_etf)}</td>
+      <td><span class="badge ${TREND_CLASS[d.trend]||'badge-gray'}">${TREND_LABEL[d.trend]||d.trend}</span></td>
+      <td>${d.short_pct != null ? d.short_pct.toFixed(1)+"%" : "—"}</td>`;
+    tr.onclick = () => toggleDetail(d, tr);
+    tbody.appendChild(tr);
+    if (openTicker === d.ticker) {
+      tbody.appendChild(buildDetailRow(d));
+    }
+  });
+}
+
+function toggleDetail(d, tr) {
+  if (openTicker === d.ticker) {
+    openTicker = null;
+  } else {
+    openTicker = d.ticker;
+  }
+  applyFilters();
+}
+
+function buildDetailRow(d) {
+  const tr = document.createElement("tr");
+  tr.className = "detail-row";
+  const td = document.createElement("td");
+  td.colSpan = 13;
+  const sd = d.sector_data || {};
+  const td2 = d.tech_data || {};
+  const id2 = d.inst_data || {};
+  const cd  = d.catalyst_data || {};
+  const eq  = d.eps_quality_data || {};
+
+  // Column 1: Sector metrics
+  const sectorRows = Object.entries(sd)
+    .filter(([k]) => k !== "score" && k !== "sector")
+    .map(([k,v]) => `<tr><td>${k}</td><td>${typeof v==="number"?v.toFixed(1):v}</td></tr>`)
+    .join("");
+
+  // EPS quality flags
+  const flags = [];
+  if (eq.eps_rev_divergence) flags.push(`<span class="badge badge-red">⚠ EPS/Rev дивергенция</span>`);
+  if (eq.fcf_conversion != null && eq.fcf_conversion < 0.6) flags.push(`<span class="badge badge-amber">⚠ FCF конверсия ${eq.fcf_conversion.toFixed(2)}</span>`);
+  if (eq.fcf_conversion != null && eq.fcf_conversion > 1.4) flags.push(`<span class="badge badge-green">✓ Высокая FCF конверсия ${eq.fcf_conversion.toFixed(2)}</span>`);
+  if (eq.debt_ebitda != null && eq.debt_ebitda > 5) flags.push(`<span class="badge badge-red">⚠ Debt/EBITDA ${eq.debt_ebitda.toFixed(1)}×</span>`);
+  const flagsHtml = flags.length ? flags.join(" ") : `<span class="badge badge-gray">Без предупреждений</span>`;
+
+  // Column 2: Technical + Institutional
+  const insiderColor = id2.insider_buy > id2.insider_sell ? "var(--green)" : id2.insider_sell > id2.insider_buy ? "var(--red)" : "var(--muted)";
+
+  // Column 3: AI summary
+  const aiHtml = d.ai_summary
+    ? `<div class="ai-block">${d.ai_summary.replace(/\n/g,"<br>")}</div>`
+    : `<div class="ai-block" style="color:var(--muted)">AI-анализ не запрашивался для этой компании.</div>`;
+
+  td.innerHTML = `
+  <div class="detail-panel">
+    <div class="detail-col">
+      <h4>Отраслевые метрики (Слой 1: ${d.sector_score.toFixed(1)}/30)</h4>
+      <table class="kv-table">${sectorRows}</table>
+      <br>
+      <h4 style="margin-bottom:6px">EPS Quality (Слой 2: ${d.eps_quality_score.toFixed(1)}/20)</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${flagsHtml}</div>
+    </div>
+    <div class="detail-col">
+      <h4>Технический анализ (${d.tech_score.toFixed(1)}/20)</h4>
+      <table class="kv-table">
+        <tr><td>RSI (14)</td><td style="color:${d.rsi<30?'var(--red)':d.rsi>70?'var(--amber)':'var(--green)'}">${(d.rsi||0).toFixed(1)}</td></tr>
+        <tr><td>Тренд</td><td><span class="badge ${TREND_CLASS[d.trend]||'badge-gray'}">${TREND_LABEL[d.trend]||d.trend}</span></td></tr>
+        <tr><td>MACD</td><td>${td2.macd||"—"}</td></tr>
+        <tr><td>EMA 9/21/50</td><td style="font-size:11px">${(td2.ema9||0).toFixed(2)} / ${(td2.ema21||0).toFixed(2)} / ${(td2.ema50||0).toFixed(2)}</td></tr>
+        <tr><td>RS vs ${td2.etf||"ETF"}</td><td>${pct(d.rs_vs_etf)}</td></tr>
+        <tr><td>Volume ratio</td><td>${(d.volume_ratio||1).toFixed(2)}×</td></tr>
+      </table>
+      <br>
+      <h4>Инсайдеры · Short (Слой 3: ${d.inst_score.toFixed(1)}/15)</h4>
+      <table class="kv-table">
+        <tr><td>Покупки (30д)</td><td style="color:${insiderColor}">${id2.insider_buy||0}</td></tr>
+        <tr><td>Продажи (30д)</td><td style="color:${id2.insider_sell>0?'var(--red)':'var(--muted)'}">${id2.insider_sell||0}</td></tr>
+        <tr><td>Short interest</td><td style="color:${(d.short_pct||0)>10?'var(--red)':(d.short_pct||0)>5?'var(--amber)':'var(--muted)'}">${d.short_pct!=null?d.short_pct.toFixed(1)+"%":"—"}</td></tr>
+      </table>
+      <br>
+      <h4>Катализаторы (Слой 4: ${d.catalyst_score.toFixed(1)}/10)</h4>
+      <table class="kv-table">
+        <tr><td>До отчёта</td><td>${cd.days_to_earnings!=null?cd.days_to_earnings+" дн":"—"}</td></tr>
+        <tr><td>Beat rate (4q)</td><td>${cd.eps_beat_quarters!=null?cd.eps_beat_quarters+"/4":"—"}</td></tr>
+        <tr><td>Avg surprise</td><td>${pct(cd.eps_surprise_avg)}</td></tr>
+        <tr><td>Upgrades/Downgrades</td><td>${cd.recent_upgrades||0} / ${cd.recent_downgrades||0}</td></tr>
+      </table>
+    </div>
+    <div class="detail-col">
+      <h4>AI-анализ</h4>
+      ${aiHtml}
+      <br>
+      <h4 style="margin-top:12px">Macro overlay</h4>
+      <table class="kv-table">
+        <tr><td>Множитель</td><td>${(d.macro_multiplier||1).toFixed(3)}</td></tr>
+        <tr><td>VIX</td><td>${d.macro_data&&d.macro_data.vix!=null?d.macro_data.vix:"—"}</td></tr>
+        <tr><td>10Y yield</td><td>${d.macro_data&&d.macro_data.yield_10y!=null?d.macro_data.yield_10y+"%":"—"}</td></tr>
+        <tr><td>DXY chg (20d)</td><td>${d.macro_data&&d.macro_data.dxy_chg_pct!=null?pct(d.macro_data.dxy_chg_pct):"—"}</td></tr>
+      </table>
+    </div>
+  </div>`;
+  tr.appendChild(td);
+  return tr;
+}
+
+applyFilters();
+</script>
+</body>
+</html>

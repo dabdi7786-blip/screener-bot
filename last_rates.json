@@ -1,0 +1,22 @@
+{
+  "nbrk": {
+    "base_rate": 17.0,
+    "inflation": 10.3,
+    "corridor_upper": 18.0,
+    "corridor_lower": 16.0
+  },
+  "kase": {
+    "tonia": 16.9,
+    "twina": 16.81,
+    "usd_kzt": 472.38
+  },
+  "us": {
+    "t3m": 3.67,
+    "t5y": 4.23,
+    "t10y": 4.49,
+    "t30y": 4.99
+  },
+  "bonds": {
+    "de_10y": 2.99
+  }
+}

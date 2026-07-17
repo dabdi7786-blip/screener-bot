@@ -223,7 +223,7 @@ def _ta_html(ta: dict) -> str:
     lines = [
         f'{ta.get("trend","")} &nbsp; MACD {ta.get("macd","")} &nbsp; '
         f'RSI {ta.get("rsi","—")} {ta.get("rsi_lbl","")}',
-        f'Вход: <span style="color:var(--text)">${ta.get("entry","—")}</span> &nbsp; '
+        f'Цена закрытия на {ta.get("price_date","—")}: <span style="color:var(--text)">${ta.get("entry","—")}</span> &nbsp; '
         f'SL: <span style="color:var(--text)">${ta.get("sl","—")}</span> ({ta.get("sl_pct","—")}) &nbsp; '
         f'TP1: <span style="color:var(--text)">${ta.get("tp1","—")}</span> ({ta.get("tp1_pct","—")})',
     ]

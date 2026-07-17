@@ -293,6 +293,8 @@ def get_ta(ticker: str) -> dict:
         high  = hist["High"]
         low   = hist["Low"]
         price = float(close.iloc[-1])
+        price_idx  = hist.index[-1]
+        price_date = (price_idx.tz_localize(None) if price_idx.tzinfo is not None else price_idx).strftime("%d.%m.%Y")
 
         ma50  = float(close.rolling(50).mean().iloc[-1])
         ma200 = float(close.rolling(200).mean().iloc[-1]) if len(close) >= 200 else None
@@ -354,6 +356,7 @@ def get_ta(ticker: str) -> dict:
             "support":    support,
             "resistance": resistance,
             "entry":      entry,
+            "price_date": price_date,
             "sl":         sl,   "sl_pct":  pct(entry, sl),
             "tp1":        tp1,  "tp1_pct": pct(entry, tp1),
             "tp2":        tp2,  "tp2_pct": pct(entry, tp2),

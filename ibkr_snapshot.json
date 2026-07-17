@@ -1,0 +1,30 @@
+{
+  "fetched_at": "17.07.2026 10:00",
+  "quotes": {
+    "AAPL": {
+      "bid": null,
+      "ask": null,
+      "last": null,
+      "close": 333.26
+    },
+    "MSFT": {
+      "bid": null,
+      "ask": null,
+      "last": null,
+      "close": 401.1
+    },
+    "SPY": {
+      "bid": null,
+      "ask": null,
+      "last": null,
+      "close": 750.72
+    }
+  },
+  "account": {
+    "BuyingPower": "4000000.00",
+    "NetLiquidation": "1000086.08",
+    "TotalCashValue": "1000000.00",
+    "UnrealizedPnL": "0.00"
+  },
+  "positions": []
+}

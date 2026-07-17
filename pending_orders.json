@@ -1,0 +1,13 @@
+[
+  {
+    "id": 1,
+    "symbol": "AAPL",
+    "qty": 1,
+    "side": "BUY",
+    "status": "pending",
+    "requested_by": "test",
+    "queued_at": "2026-07-17T11:35:19",
+    "executed_at": null,
+    "fill_price": null
+  }
+]

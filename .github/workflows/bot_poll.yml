@@ -61,7 +61,7 @@ jobs:
         run: |
           git config user.name "screener-bot"
           git config user.email "actions@users.noreply.github.com"
-          for f in last_scan.json users.json screener1_results.csv screener2_results.csv screener3_results.csv; do
+          for f in last_scan.json users.json pending_orders.json screener1_results.csv screener2_results.csv screener3_results.csv; do
             [ -f "$f" ] && git add "$f"
           done
           [ -d docs ] && git add docs/

@@ -1,0 +1,43 @@
+# IBC config.ini — ШАБЛОН, без реальных кредов. Не переименовывай в config.ini
+# и не коммить с настоящими значениями — ibc/config.ini уже в .gitignore.
+#
+# Локальная (без VPS) схема: запускаешь IB Gateway через IBC на своей машине
+# вручную, когда хочешь освежить данные — не как постоянный демон. IBC не
+# обходит 2FA, но избавляет от необходимости печатать логин/пароль руками
+# при каждом запуске.
+#
+# Сборка настоящего файла перед первым запуском (креды берутся из окружения,
+# не пишутся в этот репозиторий):
+#   IBKR_USERNAME=... IBKR_PASSWORD=... envsubst < ibc/config.ini.template > ibc/config.ini
+#
+# Java, IB Gateway и сам IBC ставятся вручную — этот файл только конфигурирует
+# уже установленный IBC. Пути ниже (IbDir, TwsSettingsPath) поправь под свою
+# установку.
+
+# ── Учётные данные ──────────────────────────────────────────────────────────
+IbLoginId=${IBKR_USERNAME}
+IbPassword=${IBKR_PASSWORD}
+
+# paper | live — начинаем с paper. Переход на live — отдельное решение
+# (см. обсуждение 2FA/Secure Login System перед этим шагом).
+TradingMode=paper
+
+# ── 2FA (IBKR Mobile) ───────────────────────────────────────────────────────
+# IBC умеет ждать push-подтверждения в IBKR Mobile и даёт повторные попытки,
+# если пропустил алерт — но саму 2FA он не обходит. Держи телефон под рукой
+# при первом запуске и при еженедельном ресете сессии IBKR (~воскресенье, 01:00 ET).
+SecondFactorDevice=
+
+# ── Пути (поправь под свою установку) ──────────────────────────────────────
+IbDir=/opt/ibgateway
+TwsSettingsPath=/opt/ibgateway/settings
+
+# ── Поведение при переподключении/диалогах ─────────────────────────────────
+ExistingSessionDetectedAction=primary
+AcceptIncomingConnectionAction=accept
+AllowBlindTrading=no
+AcceptNonBrokerageAccountWarning=yes
+
+# ibkr_local_fetch.py только читает данные — ордеров не выставляет.
+# ReadOnlyLogin=yes закрепляет это на уровне самой сессии Gateway.
+ReadOnlyLogin=yes

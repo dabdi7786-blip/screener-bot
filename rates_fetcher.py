@@ -98,7 +98,7 @@ def _parse_nbrk(html: str) -> dict:
 # ── KASE ─────────────────────────────────────────────────────────────────────
 
 def get_kase_rates() -> dict:
-    """TONIA, TWINA, USD/KZT с KASE."""
+    """TONIA, TWINA с KASE."""
     _URLS = [
         "https://kase.kz/ru/money_market/",
         "https://kase.kz/ru/",
@@ -115,20 +115,6 @@ def get_kase_rates() -> dict:
                 break
         except Exception as e:
             log.warning("KASE %s: %s", url, e)
-
-    # USD/KZT через Yahoo Finance как fallback/primary
-    try:
-        fx = yf.Ticker("KZTUSD=X").history(period="5d")
-        if fx.empty:
-            fx = yf.Ticker("USDKZT=X").history(period="5d")
-        if not fx.empty:
-            price = float(fx["Close"].iloc[-1])
-            # yfinance может вернуть KZT per USD или наоборот
-            if price < 10:
-                price = round(1 / price, 2)
-            result["usd_kzt"] = round(price, 2)
-    except Exception as e:
-        log.warning("KASE FX yfinance: %s", e)
 
     if not result:
         log.error("KASE: все источники недоступны")
@@ -151,6 +137,56 @@ def _parse_kase(html: str) -> dict:
                 result[key] = float(m.group(1).replace(",", "."))
             except ValueError:
                 pass
+    return result
+
+
+# ── Валюты (KZT) ───────────────────────────────────────────────────────────────
+
+def get_currency_rates() -> dict:
+    """Тенге к USD, EUR, RUB, TRY. Прямые тикеры Yahoo для USD/EUR,
+    кросс-курс через USD для RUB/TRY (прямых KZT-пар для них на Yahoo нет)."""
+    result = {}
+
+    usd_kzt = None
+    try:
+        fx = yf.Ticker("USDKZT=X").history(period="5d")
+        if fx.empty:
+            fx = yf.Ticker("KZTUSD=X").history(period="5d")
+            if not fx.empty:
+                usd_kzt = round(1 / float(fx["Close"].iloc[-1]), 2)
+        else:
+            usd_kzt = round(float(fx["Close"].iloc[-1]), 2)
+        if usd_kzt is not None:
+            result["usd_kzt"] = usd_kzt
+    except Exception as e:
+        log.warning("Currency USD/KZT: %s", e)
+
+    try:
+        fx = yf.Ticker("EURKZT=X").history(period="5d")
+        if not fx.empty:
+            result["eur_kzt"] = round(float(fx["Close"].iloc[-1]), 2)
+    except Exception as e:
+        log.warning("Currency EUR/KZT: %s", e)
+
+    if usd_kzt is not None:
+        try:
+            fx = yf.Ticker("USDRUB=X").history(period="5d")
+            if not fx.empty:
+                usd_rub = float(fx["Close"].iloc[-1])
+                result["rub_kzt"] = round(usd_kzt / usd_rub, 3)
+        except Exception as e:
+            log.warning("Currency RUB/KZT: %s", e)
+
+        try:
+            fx = yf.Ticker("USDTRY=X").history(period="5d")
+            if not fx.empty:
+                usd_try = float(fx["Close"].iloc[-1])
+                result["try_kzt"] = round(usd_kzt / usd_try, 3)
+        except Exception as e:
+            log.warning("Currency TRY/KZT: %s", e)
+
+    if not result:
+        log.error("Currency: все источники недоступны")
     return result
 
 
@@ -341,14 +377,17 @@ def _v(val, suffix="%") -> str:
     return f"{val:.2f}{suffix}"
 
 
-def build_rates_message(prev: dict = None) -> str:
+def build_rates_message(rates: dict, prev: dict = None) -> str:
+    """rates: {"nbrk", "kase", "us", "bonds", "currency"} — уже полученные данные,
+    эта функция ничего сама не фетчит и не сохраняет историю."""
     if prev is None:
         prev = {}
 
-    nbrk   = get_nbrk_rates()
-    kase   = get_kase_rates()
-    us     = get_us_rates()
-    bonds  = get_global_bonds()
+    nbrk     = rates.get("nbrk", {})
+    kase     = rates.get("kase", {})
+    us       = rates.get("us", {})
+    bonds    = rates.get("bonds", {})
+    currency = rates.get("currency", {})
 
     now = datetime.now().strftime("%d.%m.%Y")
     lines = [f"💹 <b>ОБЗОР СТАВОК — {now}</b>\n"]
@@ -377,16 +416,25 @@ def build_rates_message(prev: dict = None) -> str:
     if kase:
         tonia = kase.get("tonia")
         twina = kase.get("twina")
-        usd   = kase.get("usd_kzt")
         if tonia is not None:
             dlt = fmt_delta(tonia, prev.get("kase", {}), "tonia")
             lines.append(f"  TONIA:    <code>{_v(tonia)}</code>{dlt}")
         if twina is not None:
             dlt = fmt_delta(twina, prev.get("kase", {}), "twina")
             lines.append(f"  TWINA:    <code>{_v(twina)}</code>{dlt}")
-        if usd is not None:
-            dlt = fmt_delta(usd, prev.get("kase", {}), "usd_kzt")
-            lines.append(f"  USD/KZT:  <code>{_v(usd, suffix='')}</code>{dlt}")
+    else:
+        lines.append("  <i>данные недоступны</i>")
+
+    # ── Валюты ────────────────────────────────────────────────────────────────
+    lines.append("")
+    lines.append("💱 <b>ВАЛЮТЫ (ТЕНГЕ)</b>")
+    if currency:
+        for key, label in [("usd_kzt","USD/KZT"), ("eur_kzt","EUR/KZT"),
+                            ("rub_kzt","RUB/KZT"), ("try_kzt","TRY/KZT")]:
+            val = currency.get(key)
+            if val is not None:
+                dlt = fmt_delta(val, prev.get("currency", {}), key)
+                lines.append(f"  {label}:  <code>{_v(val, suffix='')}</code>{dlt}")
     else:
         lines.append("  <i>данные недоступны</i>")
 
@@ -437,11 +485,5 @@ def build_rates_message(prev: dict = None) -> str:
             lines.append("  " + " | ".join(bond_parts))
     else:
         lines.append("  <i>данные недоступны</i>")
-
-    # Сохраняем для следующей дельты
-    save_current({
-        "nbrk": nbrk, "kase": kase,
-        "us": us, "bonds": bonds,
-    })
 
     return "\n".join(lines)

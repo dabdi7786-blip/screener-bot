@@ -827,22 +827,34 @@ def main():
 
     # ── Сканнер #4: Ставки ────────────────────────────────────────────────────
     print("\nЗагрузка ставок...")
-    rates_raw, rates_msg = {}, None
+    rates_raw, rates_msg, prev = {}, None, {}
     try:
         from rates_fetcher import (get_nbrk_rates, get_kase_rates,
                                     get_us_rates, get_global_bonds,
+                                    get_currency_rates,
                                     build_rates_message, load_previous, save_current)
         prev = load_previous()
         rates_raw = {
-            "nbrk":  get_nbrk_rates(),
-            "kase":  get_kase_rates(),
-            "us":    get_us_rates(),
-            "bonds": get_global_bonds(),
+            "nbrk":     get_nbrk_rates(),
+            "kase":     get_kase_rates(),
+            "us":       get_us_rates(),
+            "bonds":    get_global_bonds(),
+            "currency": get_currency_rates(),
         }
         save_current(rates_raw)
-        rates_msg = build_rates_message(prev)
+        rates_msg = build_rates_message(rates_raw, prev)
     except Exception as e:
         print(f"Ставки: ошибка — {e}")
+
+    # ── Сканнер #5: Interactive Brokers (снэпшот из ibkr_snapshot.json) ────────
+    print("\nЗагрузка данных IBKR...")
+    ibkr_raw, ibkr_msg = {}, None
+    try:
+        from ibkr_fetcher import get_ibkr_data, build_ibkr_message
+        ibkr_raw = get_ibkr_data()
+        ibkr_msg = build_ibkr_message(ibkr_raw)
+    except Exception as e:
+        print(f"IBKR: ошибка — {e}")
 
     # ── Дашборд: генерация HTML (публикуется на GitHub Pages сборкой workflow) ─
     print("\nГенерация дашборда...")
@@ -850,7 +862,7 @@ def main():
     try:
         from dashboard_generator import generate
         date_only = datetime.now().strftime("%d.%m.%Y")
-        html_path = generate(dashboard_data, rates_raw, date_only)
+        html_path = generate(dashboard_data, rates_raw, date_only, prev, ibkr_raw)
         print(f"HTML: {html_path}")
         print(f"Дашборд: {url}" if url else "PAGES_URL не задан — дашборд без ссылки")
     except Exception as e:
@@ -863,10 +875,13 @@ def main():
         for sc in SCREENERS:
             rating_lines.append(f"{sc['emoji']} {sc['name']} → {url}#sc{sc['id']}")
         rating_lines.append(f"💹 Ставки → {url}#rates")
+        rating_lines.append(f"🏦 IBKR → {url}#ibkr")
 
     tg_send("\n".join(rating_lines))
     if rates_msg:
         tg_send(rates_msg)
+    if ibkr_msg:
+        tg_send(ibkr_msg)
     print("Готово.")
 
 if __name__ == "__main__":

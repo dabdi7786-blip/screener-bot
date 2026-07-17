@@ -29,10 +29,12 @@ def _chg(v):
     return f"{sign}{v:.1f}%"
 
 
-def generate(screener_results: dict, rates_data: dict, date_str: str = "") -> str:
+def generate(screener_results: dict, rates_data: dict, date_str: str = "", prev_rates: dict = None, ibkr_data: dict = None) -> str:
     """
     screener_results: {1: [(ticker, row_dict, score_dict, ta_dict), ...], 2: [...], 3: [...]}
-    rates_data:       {"nbrk": {...}, "kase": {...}, "us": {...}, "bonds": {...}}
+    rates_data:       {"nbrk": {...}, "kase": {...}, "us": {...}, "bonds": {...}, "currency": {...}}
+    prev_rates:       та же форма, что и rates_data — предыдущий прогон, для дельт день/день.
+    ibkr_data:        {"quotes": {...}, "account": {...}, "positions": [...]}
     Пишет docs/{YYYY-MM-DD}.html (архив) + docs/index.html (= сегодня, для GitHub Pages).
     Returns path to generated HTML file (в output/, для локальной истории).
     """
@@ -45,7 +47,7 @@ def generate(screener_results: dict, rates_data: dict, date_str: str = "") -> st
     # Список дат для фильтра — уже заархивированные + сегодняшняя
     dates = sorted({p.stem for p in DOCS_DIR.glob("????-??-??.html")} | {iso_date}, reverse=True)
 
-    html = _build_html(screener_results, rates_data, date_str, dates, iso_date)
+    html = _build_html(screener_results, rates_data, date_str, dates, iso_date, prev_rates, ibkr_data)
 
     fname = f"screener_{datetime.now().strftime('%Y%m%d')}.html"
     path  = OUTPUT_DIR / fname
@@ -69,6 +71,9 @@ def _build_nav(screeners: dict) -> str:
     buttons.append(
         '<button class="nav-btn" data-id="rates" onclick="showSection(\'rates\')">💹 Ставки</button>'
     )
+    buttons.append(
+        '<button class="nav-btn" data-id="ibkr" onclick="showSection(\'ibkr\')">🏦 IBKR</button>'
+    )
     return "\n  ".join(buttons)
 
 
@@ -83,9 +88,10 @@ def _build_date_select(dates: list, current_date: str) -> str:
     )
 
 
-def _build_html(screeners: dict, rates: dict, date_str: str, dates: list = None, current_date: str = "") -> str:
+def _build_html(screeners: dict, rates: dict, date_str: str, dates: list = None, current_date: str = "", prev_rates: dict = None, ibkr: dict = None) -> str:
     sc_html    = _build_screeners_section(screeners)
-    rt_html    = _build_rates_section(rates)
+    rt_html    = _build_rates_section(rates, prev_rates)
+    ib_html    = _build_ibkr_section(ibkr or {})
     nav_html   = _build_nav(screeners)
     date_select = _build_date_select(dates or [current_date], current_date) if dates else ""
     total      = sum(len(v) for v in screeners.values())
@@ -156,6 +162,7 @@ nav{{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24p
 </nav>
 {sc_html}
 {rt_html}
+{ib_html}
 <script>
 function showSection(id){{
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -165,9 +172,9 @@ function showSection(id){{
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
 }}
-// Deep-link: открыть нужную вкладку по #sc1 / #sc2 / #sc3 / #rates из ссылки
+// Deep-link: открыть нужную вкладку по #sc1 / #sc2 / #sc3 / #rates / #ibkr из ссылки
 (function(){{
-  var valid = ['sc1','sc2','sc3','rates'];
+  var valid = ['sc1','sc2','sc3','rates','ibkr'];
   var hash  = (location.hash || '').replace('#', '');
   showSection(valid.indexOf(hash) !== -1 ? hash : 'sc1');
 }})();
@@ -287,55 +294,131 @@ def _stock_card(r: tuple) -> str:
 
 # ── Rates section ─────────────────────────────────────────────────────────────
 
-def _build_rates_section(rates: dict) -> str:
-    nbrk  = rates.get("nbrk", {})
-    kase  = rates.get("kase", {})
-    us    = rates.get("us", {})
-    bonds = rates.get("bonds", {})
+def _delta_html(val, prev_section: dict, key: str) -> str:
+    prev_val = (prev_section or {}).get(key)
+    if val is None or prev_val is None:
+        return ""
+    try:
+        diff = float(val) - float(prev_val)
+    except (TypeError, ValueError):
+        return ""
+    if abs(diff) < 0.001:
+        return ""
+    cls  = "delta-up" if diff > 0 else "delta-dn"
+    arr  = "↑" if diff > 0 else "↓"
+    sign = "+" if diff > 0 else ""
+    return f'<span class="{cls}">{arr}{sign}{diff:.2f}</span>'
+
+
+def _build_rates_section(rates: dict, prev_rates: dict = None) -> str:
+    prev_rates = prev_rates or {}
+    nbrk     = rates.get("nbrk", {})
+    kase     = rates.get("kase", {})
+    us       = rates.get("us", {})
+    bonds    = rates.get("bonds", {})
+    currency = rates.get("currency", {})
 
     def row(label, val, suffix="%", delta_key=None, prev=None):
         v = _safe(val, ".2f", suffix) if val is not None else "—"
-        return f'<div class="rate-row"><span class="rate-label">{label}</span><span class="rate-val">{v}</span></div>'
+        d = _delta_html(val, prev, delta_key) if (val is not None and delta_key and prev is not None) else ""
+        return f'<div class="rate-row"><span class="rate-label">{label}</span><span class="rate-val">{v}{d}</span></div>'
 
+    prev_nbrk = prev_rates.get("nbrk", {})
     nbrk_rows = (
-        row("Базовая ставка",   nbrk.get("base_rate"))
+        row("Базовая ставка",   nbrk.get("base_rate"),      delta_key="base_rate", prev=prev_nbrk)
         + row("Коридор верх",   nbrk.get("corridor_upper"))
         + row("Коридор низ",    nbrk.get("corridor_lower"))
-        + row("Инфляция",       nbrk.get("inflation"))
+        + row("Инфляция",       nbrk.get("inflation"),       delta_key="inflation", prev=prev_nbrk)
     ) if nbrk else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
+    prev_kase = prev_rates.get("kase", {})
     kase_rows = (
-        row("TONIA",    kase.get("tonia"))
-        + row("TWINA",  kase.get("twina"))
-        + row("USD/KZT", kase.get("usd_kzt"), suffix=" ₸")
+        row("TONIA",    kase.get("tonia"), delta_key="tonia", prev=prev_kase)
+        + row("TWINA",  kase.get("twina"), delta_key="twina", prev=prev_kase)
     ) if kase else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
+    prev_cur = prev_rates.get("currency", {})
+    currency_rows = (
+        row("USD/KZT", currency.get("usd_kzt"), suffix=" ₸", delta_key="usd_kzt", prev=prev_cur)
+        + row("EUR/KZT", currency.get("eur_kzt"), suffix=" ₸", delta_key="eur_kzt", prev=prev_cur)
+        + row("RUB/KZT", currency.get("rub_kzt"), suffix=" ₸", delta_key="rub_kzt", prev=prev_cur)
+        + row("TRY/KZT", currency.get("try_kzt"), suffix=" ₸", delta_key="try_kzt", prev=prev_cur)
+    ) if currency else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
+
+    prev_us = prev_rates.get("us", {})
     effr = us.get("effr")
     effr_str = (f"{us.get('effr_lo','')} — {us.get('effr_hi','')}" if us.get("effr_lo") else _safe(effr, ".2f", "%")) if effr else "—"
+    effr_delta = _delta_html(effr, prev_us, "effr") if effr is not None else ""
     us_rows = (
-        f'<div class="rate-row"><span class="rate-label">Fed Rate (EFFR)</span><span class="rate-val">{effr_str}</span></div>'
-        + (row("SOFR",  us.get("sofr")) if us.get("sofr") else "")
-        + row("T3M",   us.get("t3m"))
-        + row("T5Y",   us.get("t5y"))
-        + row("T10Y",  us.get("t10y"))
-        + row("T30Y",  us.get("t30y"))
+        f'<div class="rate-row"><span class="rate-label">Fed Rate (EFFR)</span><span class="rate-val">{effr_str}{effr_delta}</span></div>'
+        + (row("SOFR",  us.get("sofr"), delta_key="sofr", prev=prev_us) if us.get("sofr") else "")
+        + row("T3M",   us.get("t3m"),  delta_key="t3m",  prev=prev_us)
+        + row("T5Y",   us.get("t5y"),  delta_key="t5y",  prev=prev_us)
+        + row("T10Y",  us.get("t10y"), delta_key="t10y", prev=prev_us)
+        + row("T30Y",  us.get("t30y"), delta_key="t30y", prev=prev_us)
     ) if us else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
+    prev_bonds = prev_rates.get("bonds", {})
     bond_items = [
         ("🇩🇪 DE 10Y", "de_10y"), ("🇬🇧 UK 10Y", "uk_10y"),
         ("🇯🇵 JP 10Y", "jp_10y"), ("🇫🇷 FR 10Y", "fr_10y"),
     ]
     bond_rows = "".join(
-        row(label, bonds.get(key)) for label, key in bond_items if bonds.get(key) is not None
+        row(label, bonds.get(key), delta_key=key, prev=prev_bonds) for label, key in bond_items if bonds.get(key) is not None
     ) or '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
     return f"""<div class="section" id="rates">
 <div class="sc-title">💹 Обзор ставок</div>
-<div class="sc-desc">НБРК · KASE · US Treasury · Global Bonds</div>
+<div class="sc-desc">НБРК · KASE · Валюты · US Treasury · Global Bonds</div>
 <div class="rates-grid">
   <div class="rates-card"><h3>🇰🇿 НБРК — Монетарная политика</h3>{nbrk_rows}</div>
   <div class="rates-card"><h3>🏦 KASE — Денежный рынок</h3>{kase_rows}</div>
+  <div class="rates-card"><h3>💱 Валюты</h3>{currency_rows}</div>
   <div class="rates-card"><h3>🇺🇸 США — Ставки и трежерис</h3>{us_rows}</div>
   <div class="rates-card"><h3>🌍 Мировые облигации (10Y)</h3>{bond_rows}</div>
+</div>
+</div>"""
+
+
+# ── IBKR section ────────────────────────────────────────────────────────────────
+
+def _build_ibkr_section(ibkr: dict) -> str:
+    quotes     = ibkr.get("quotes", {})
+    account    = ibkr.get("account", {})
+    positions  = ibkr.get("positions", [])
+    fetched_at = ibkr.get("fetched_at")
+
+    quote_rows = "".join(
+        f'<div class="rate-row"><span class="rate-label">{sym}</span>'
+        f'<span class="rate-val">{_safe(q.get("last") if q.get("last") is not None else q.get("close"), ".2f", " $")}</span></div>'
+        for sym, q in quotes.items()
+    ) or '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
+
+    acc_items = [
+        ("NetLiquidation", "Net Liquidation"), ("TotalCashValue", "Cash"),
+        ("BuyingPower", "Buying power"), ("UnrealizedPnL", "Unrealized P&L"),
+    ]
+    account_rows = "".join(
+        f'<div class="rate-row"><span class="rate-label">{label}</span>'
+        f'<span class="rate-val">{_safe(account.get(key), ".2f", " $")}</span></div>'
+        for key, label in acc_items if account.get(key) is not None
+    ) or '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
+
+    position_rows = "".join(
+        f'<div class="rate-row"><span class="rate-label">{p.get("symbol","—")}</span>'
+        f'<span class="rate-val">{_safe(p.get("position"), "g")} @ {_safe(p.get("avg_cost"), ".2f", " $")}</span></div>'
+        for p in positions
+    ) or '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">нет открытых позиций / данные недоступны</span></div>'
+
+    freshness = f"Котировки watchlist · Счёт · Позиции (paper) · снэпшот от {fetched_at}" if fetched_at \
+        else "Котировки watchlist · Счёт · Позиции (paper) · снэпшота ещё нет — запусти ibkr_local_fetch.py"
+
+    return f"""<div class="section" id="ibkr">
+<div class="sc-title">🏦 Interactive Brokers</div>
+<div class="sc-desc">{freshness}</div>
+<div class="rates-grid">
+  <div class="rates-card"><h3>📈 Котировки</h3>{quote_rows}</div>
+  <div class="rates-card"><h3>💼 Счёт</h3>{account_rows}</div>
+  <div class="rates-card"><h3>📊 Позиции</h3>{position_rows}</div>
 </div>
 </div>"""

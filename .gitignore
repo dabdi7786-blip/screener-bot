@@ -8,3 +8,4 @@ output/*.html
 all_stocks.csv
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+ibc/config.ini

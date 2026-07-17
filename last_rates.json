@@ -6,17 +6,22 @@
     "corridor_lower": 16.0
   },
   "kase": {
-    "tonia": 16.79,
-    "twina": 16.9,
-    "usd_kzt": 470.9
+    "tonia": 16.76,
+    "twina": 16.9
   },
   "us": {
-    "t3m": 3.69,
-    "t5y": 4.26,
-    "t10y": 4.55,
-    "t30y": 5.08
+    "t3m": 3.7,
+    "t5y": 4.28,
+    "t10y": 4.57,
+    "t30y": 5.1
   },
   "bonds": {
     "de_10y": 3.15
+  },
+  "currency": {
+    "usd_kzt": 470.03,
+    "eur_kzt": 537.78,
+    "rub_kzt": 5.988,
+    "try_kzt": 9.97
   }
 }

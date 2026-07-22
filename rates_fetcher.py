@@ -196,7 +196,6 @@ COMMODITY_TICKERS = {
     "oil":    "CL=F",   # WTI Crude
     "gold":   "GC=F",
     "silver": "SI=F",
-    "copper": "HG=F",
 }
 
 
@@ -216,9 +215,49 @@ def _get_uranium_price() -> dict:
     return {}
 
 
+def _get_lme_copper() -> dict:
+    """LME Copper Cash-Settlement, $/тонна (не $/фунт, как раньше через COMEX
+    HG=F — единица другая). LME сам не отдаёт данные бесплатно (403 на прямой
+    запрос), скрейпим westmetall.com — публикует официальную цену с полной
+    дневной историей, поэтому, в отличие от урана, тут есть chg30d."""
+    try:
+        r = requests.get(
+            "https://www.westmetall.com/en/markdaten.php?action=table&field=LME_Cu_cash",
+            headers=HEADERS, timeout=20,
+        )
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "lxml")
+        rows = []
+        for tr in soup.find_all("tr"):
+            tds = tr.find_all("td")
+            if len(tds) < 2:
+                continue
+            try:
+                date = datetime.strptime(tds[0].get_text(strip=True), "%d. %B %Y")
+                price = float(tds[1].get_text(strip=True).replace(",", ""))
+                rows.append((date, price))
+            except ValueError:
+                continue
+        if not rows:
+            return {}
+        rows.sort(key=lambda x: x[0])
+        last_date, last_price = rows[-1]
+        result = {"copper_price": round(last_price, 2)}
+
+        target = last_date - timedelta(days=30)
+        prior = [p for d, p in rows if d <= target]
+        if prior and prior[-1]:
+            result["copper_chg30d"] = round((last_price / prior[-1] - 1) * 100, 2)
+        return result
+    except Exception as e:
+        log.warning("LME Copper: %s", e)
+    return {}
+
+
 def get_commodity_rates() -> dict:
-    """Для нефти/золота/серебра/меди: {key}_price (последняя цена) и {key}_chg30d
-    (% к цене ~30 календарных дней назад) через yfinance. Для урана — только
+    """Для нефти/золота/серебра: {key}_price (последняя цена) и {key}_chg30d
+    (% к цене ~30 календарных дней назад) через yfinance. Медь — отдельно,
+    через _get_lme_copper() (реальный LME, $/тонна). Уран — только
     {key}_price через _get_uranium_price() (см. её докстринг). Дельта день/день
     считается снаружи через fmt_delta, как и для остальных секций."""
     result = {}
@@ -240,6 +279,7 @@ def get_commodity_rates() -> dict:
         except Exception as e:
             log.warning("Commodity %s (%s): %s", key, sym, e)
 
+    result.update(_get_lme_copper())
     result.update(_get_uranium_price())
 
     if not result:
@@ -501,7 +541,7 @@ def build_rates_message(rates: dict, prev: dict = None) -> str:
     lines.append("🛢️ <b>СЫРЬЕВЫЕ ТОВАРЫ</b>")
     if commodities:
         for key, label in [("oil","Нефть (WTI)"), ("gold","Золото"), ("silver","Серебро"),
-                            ("copper","Медь"), ("uranium","Уран (U3O8)")]:
+                            ("copper","Медь (LME, $/т)"), ("uranium","Уран (U3O8)")]:
             price = commodities.get(f"{key}_price")
             if price is None:
                 continue

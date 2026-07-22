@@ -406,11 +406,15 @@ def handle_buy_command(text: str, chat_id: str):
     })
     save_orders(orders)
 
-    tg_send(
-        f"📝 Заявка #{order_id} поставлена в очередь: <b>BUY {qty} {symbol}</b> (paper).\n"
-        f"Исполнится, когда сам запустишь Gateway локально и подтвердишь её там "
-        f"(<code>ibkr_local_execute.py</code>). Проверить статус: /orders",
-        chat_id,
+    confirm_kb = {"inline_keyboard": [[
+        {"text": "✅ Подтвердить", "callback_data": f"confirm_buy_{order_id}"},
+        {"text": "❌ Отменить",    "callback_data": f"cancel_buy_{order_id}"},
+    ]]}
+    tg_send_kb(
+        f"📝 Заявка #{order_id}: <b>BUY {qty} {symbol}</b> (paper).\n"
+        f"Подтверди кнопкой ниже — исполнится, когда сам в следующий раз "
+        f"запустишь Gateway локально (<code>ibkr_local_execute.py</code>).",
+        chat_id, confirm_kb,
     )
 
 def handle_orders_command(chat_id: str):
@@ -419,7 +423,10 @@ def handle_orders_command(chat_id: str):
         tg_send("ℹ️ Заявок пока нет.", chat_id)
         return
     lines = ["📝 <b>Заявки</b>"]
-    status_emoji = {"pending": "⏳", "executed": "✅", "cancelled": "🚫", "failed": "❌"}
+    status_emoji = {
+        "pending": "⏳", "confirmed": "👍", "executed": "✅",
+        "submitted": "📤", "cancelled": "🚫", "failed": "❌",
+    }
     for o in orders[-20:]:
         emoji = status_emoji.get(o["status"], "•")
         line = f"{emoji} #{o['id']} {o['side']} {o['qty']} {o['symbol']} — {o['status']}"
@@ -427,6 +434,26 @@ def handle_orders_command(chat_id: str):
             line += f" @ {o['fill_price']}"
         lines.append(line)
     tg_send("\n".join(lines), chat_id)
+
+def handle_buy_confirm(order_id: int, new_status: str, chat_id: str):
+    orders = load_orders()
+    order = next((o for o in orders if o["id"] == order_id), None)
+    if order is None:
+        tg_send(f"Заявка #{order_id} не найдена.", chat_id)
+        return
+    if order["status"] != "pending":
+        tg_send(f"Заявка #{order_id} уже в статусе «{order['status']}» — повторно не меняю.", chat_id)
+        return
+    order["status"] = new_status
+    save_orders(orders)
+    if new_status == "confirmed":
+        tg_send(
+            f"👍 Заявка #{order_id} подтверждена: <b>BUY {order['qty']} {order['symbol']}</b>.\n"
+            f"Исполнится при следующем запуске <code>ibkr_local_execute.py</code> локально.",
+            chat_id,
+        )
+    else:
+        tg_send(f"🚫 Заявка #{order_id} отменена.", chat_id)
 
 # ── Обработка команд ───────────────────────────────────────────────────────
 
@@ -504,6 +531,12 @@ def handle_callback(data: str, chat_id: str):
         return
     if data.startswith("block_") and is_admin(chat_id):
         block_user(data[6:], chat_id)
+        return
+    if data.startswith("confirm_buy_") and is_admin(chat_id):
+        handle_buy_confirm(int(data[len("confirm_buy_"):]), "confirmed", chat_id)
+        return
+    if data.startswith("cancel_buy_") and is_admin(chat_id):
+        handle_buy_confirm(int(data[len("cancel_buy_"):]), "cancelled", chat_id)
         return
 
     if not is_allowed(chat_id):

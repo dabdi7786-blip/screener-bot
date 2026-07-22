@@ -1,9 +1,10 @@
 """
 Запускай вручную на своей машине, когда IB Gateway (через IBC) поднят и залогинен.
-Забирает заявки, поставленные командой /buy в Telegram (bot_server.py пишет их
-в pending_orders.json и коммитит), и по одной, с ручным подтверждением в
-терминале, исполняет через IB Gateway. Ничего не исполняется автоматически —
-ты явно подтверждаешь каждую заявку здесь, локально.
+Забирает заявки, поставленные командой /buy в Telegram и подтверждённые там же
+кнопкой «✅ Подтвердить» (bot_server.py переводит их в статус "confirmed" и
+коммитит pending_orders.json) — и исполняет через IB Gateway. Подтверждение
+происходит в Telegram, этот скрипт сам по себе ничего не спрашивает и не решает,
+только исполняет уже подтверждённое.
 
 Только paper-аккаунт (порт 4002) — жёсткая проверка ниже, скрипт откажется
 работать на 4001 (live). Переход на live — отдельное решение, не через этот
@@ -95,19 +96,14 @@ async def execute_order(ib: IB, order: dict) -> None:
         tg_send(f"❌ Заявка #{order['id']} не исполнена: BUY {qty} {symbol} — {e}")
 
 
-async def run(pending: list):
+async def run(confirmed: list):
     ib = IB()
     await ib.connectAsync(IB_HOST, IB_PORT, clientId=IB_CLIENT_ID, timeout=15)
     try:
-        for order in pending:
-            print(f"\nЗаявка #{order['id']}: BUY {order['qty']} {order['symbol']} "
-                  f"(поставлена {order['queued_at']})")
-            answer = input("Подтвердить и отправить в IB? [y/N]: ").strip().lower()
-            if answer == "y":
-                await execute_order(ib, order)
-            else:
-                order["status"] = "cancelled"
-                print(f"Заявка #{order['id']} отменена.")
+        for order in confirmed:
+            print(f"Исполняю заявку #{order['id']}: BUY {order['qty']} {order['symbol']} "
+                  f"(подтверждена в Telegram, поставлена {order['queued_at']})")
+            await execute_order(ib, order)
     finally:
         ib.disconnect()
 
@@ -120,13 +116,13 @@ def main():
 
     subprocess.run(["git", "pull", "--rebase"], cwd=REPO_DIR, check=True)
 
-    orders  = load_orders()
-    pending = [o for o in orders if o["status"] == "pending"]
-    if not pending:
-        print("Нет заявок в очереди (status=pending).")
+    orders    = load_orders()
+    confirmed = [o for o in orders if o["status"] == "confirmed"]
+    if not confirmed:
+        print("Нет подтверждённых заявок (status=confirmed) — подтверди кнопкой в Telegram сначала.")
         return
 
-    asyncio.run(run(pending))
+    asyncio.run(run(confirmed))
     save_orders(orders)
 
     subprocess.run(["git", "add", str(ORDERS_FILE)], cwd=REPO_DIR, check=True)

@@ -365,7 +365,7 @@ def _build_rates_section(rates: dict, prev_rates: dict = None) -> str:
         + commodity_row("Золото", "gold")
         + commodity_row("Серебро", "silver")
         + commodity_row("Медь", "copper")
-        + commodity_row("Уран (URA)", "uranium")
+        + commodity_row("Уран (U3O8)", "uranium")
     ) if commodities else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
     prev_us = prev_rates.get("us", {})

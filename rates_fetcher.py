@@ -192,20 +192,35 @@ def get_currency_rates() -> dict:
 
 # ── Сырьевые товары ────────────────────────────────────────────────────────────
 
-# Уран — прямого фьючерса на Yahoo нет, URA (ETF на майнеров) — общепринятый прокси.
 COMMODITY_TICKERS = {
-    "oil":     "CL=F",   # WTI Crude
-    "gold":    "GC=F",
-    "silver":  "SI=F",
-    "copper":  "HG=F",
-    "uranium": "URA",
+    "oil":    "CL=F",   # WTI Crude
+    "gold":   "GC=F",
+    "silver": "SI=F",
+    "copper": "HG=F",
 }
 
 
+def _get_uranium_price() -> dict:
+    """U3O8 (yellowcake) спот-цена, $/фунт. Прямого фьючерса на Yahoo нет (тонкий,
+    малоликвидный рынок), скрейпим uraniumtracker.com — единственный найденный
+    бесплатный источник, отдающий цену прямо в HTML без JS. Истории цены он не
+    даёт, поэтому для урана нет {key}_chg30d — только текущая цена."""
+    try:
+        r = requests.get("https://www.uraniumtracker.com/", headers=HEADERS, timeout=20)
+        r.raise_for_status()
+        m = re.search(r"current U3O8 spot price is \$([\d.]+) per pound", r.text)
+        if m:
+            return {"uranium_price": round(float(m.group(1)), 2)}
+    except Exception as e:
+        log.warning("Uranium U3O8: %s", e)
+    return {}
+
+
 def get_commodity_rates() -> dict:
-    """Для каждого товара: {key}_price (последняя цена) и {key}_chg30d (% к цене
-    ~30 календарных дней назад). Дельта день/день считается снаружи через fmt_delta,
-    как и для остальных секций — тут только цена и 30-дневное изменение."""
+    """Для нефти/золота/серебра/меди: {key}_price (последняя цена) и {key}_chg30d
+    (% к цене ~30 календарных дней назад) через yfinance. Для урана — только
+    {key}_price через _get_uranium_price() (см. её докстринг). Дельта день/день
+    считается снаружи через fmt_delta, как и для остальных секций."""
     result = {}
     for key, sym in COMMODITY_TICKERS.items():
         try:
@@ -224,6 +239,8 @@ def get_commodity_rates() -> dict:
                     result[f"{key}_chg30d"] = round((last / prev30 - 1) * 100, 2)
         except Exception as e:
             log.warning("Commodity %s (%s): %s", key, sym, e)
+
+    result.update(_get_uranium_price())
 
     if not result:
         log.error("Commodities: все источники недоступны")
@@ -484,7 +501,7 @@ def build_rates_message(rates: dict, prev: dict = None) -> str:
     lines.append("🛢️ <b>СЫРЬЕВЫЕ ТОВАРЫ</b>")
     if commodities:
         for key, label in [("oil","Нефть (WTI)"), ("gold","Золото"), ("silver","Серебро"),
-                            ("copper","Медь"), ("uranium","Уран (URA)")]:
+                            ("copper","Медь"), ("uranium","Уран (U3O8)")]:
             price = commodities.get(f"{key}_price")
             if price is None:
                 continue

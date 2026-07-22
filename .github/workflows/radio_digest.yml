@@ -1,0 +1,31 @@
+name: Radio Digest
+
+on:
+  schedule:
+    - cron: "0 3 * * *"   # 08:00 (UTC+5, Алматы) каждый день — время эфира
+  workflow_dispatch: {}
+
+concurrency:
+  group: radio-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240   # запись 60 мин + распознавание на CPU может занять почти столько же
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements-radio.txt
+
+      - name: Записать, распознать и отправить сводку эфира
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python radio_digest.py

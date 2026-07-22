@@ -7,7 +7,7 @@ import logging
 import re
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
@@ -187,6 +187,46 @@ def get_currency_rates() -> dict:
 
     if not result:
         log.error("Currency: все источники недоступны")
+    return result
+
+
+# ── Сырьевые товары ────────────────────────────────────────────────────────────
+
+# Уран — прямого фьючерса на Yahoo нет, URA (ETF на майнеров) — общепринятый прокси.
+COMMODITY_TICKERS = {
+    "oil":     "CL=F",   # WTI Crude
+    "gold":    "GC=F",
+    "silver":  "SI=F",
+    "copper":  "HG=F",
+    "uranium": "URA",
+}
+
+
+def get_commodity_rates() -> dict:
+    """Для каждого товара: {key}_price (последняя цена) и {key}_chg30d (% к цене
+    ~30 календарных дней назад). Дельта день/день считается снаружи через fmt_delta,
+    как и для остальных секций — тут только цена и 30-дневное изменение."""
+    result = {}
+    for key, sym in COMMODITY_TICKERS.items():
+        try:
+            hist = yf.Ticker(sym).history(period="2mo")
+            close = hist["Close"].dropna()
+            if close.empty:
+                continue
+            last = float(close.iloc[-1])
+            result[f"{key}_price"] = round(last, 2)
+
+            target = close.index[-1] - timedelta(days=30)
+            pos = close.index.searchsorted(target)
+            if pos < len(close):
+                prev30 = float(close.iloc[pos])
+                if prev30:
+                    result[f"{key}_chg30d"] = round((last / prev30 - 1) * 100, 2)
+        except Exception as e:
+            log.warning("Commodity %s (%s): %s", key, sym, e)
+
+    if not result:
+        log.error("Commodities: все источники недоступны")
     return result
 
 
@@ -383,11 +423,12 @@ def build_rates_message(rates: dict, prev: dict = None) -> str:
     if prev is None:
         prev = {}
 
-    nbrk     = rates.get("nbrk", {})
-    kase     = rates.get("kase", {})
-    us       = rates.get("us", {})
-    bonds    = rates.get("bonds", {})
-    currency = rates.get("currency", {})
+    nbrk        = rates.get("nbrk", {})
+    kase        = rates.get("kase", {})
+    us          = rates.get("us", {})
+    bonds       = rates.get("bonds", {})
+    currency    = rates.get("currency", {})
+    commodities = rates.get("commodities", {})
 
     now = datetime.now().strftime("%d.%m.%Y")
     lines = [f"💹 <b>ОБЗОР СТАВОК — {now}</b>\n"]
@@ -435,6 +476,22 @@ def build_rates_message(rates: dict, prev: dict = None) -> str:
             if val is not None:
                 dlt = fmt_delta(val, prev.get("currency", {}), key)
                 lines.append(f"  {label}:  <code>{_v(val, suffix='')}</code>{dlt}")
+    else:
+        lines.append("  <i>данные недоступны</i>")
+
+    # ── Сырьевые товары ──────────────────────────────────────────────────────
+    lines.append("")
+    lines.append("🛢️ <b>СЫРЬЕВЫЕ ТОВАРЫ</b>")
+    if commodities:
+        for key, label in [("oil","Нефть (WTI)"), ("gold","Золото"), ("silver","Серебро"),
+                            ("copper","Медь"), ("uranium","Уран (URA)")]:
+            price = commodities.get(f"{key}_price")
+            if price is None:
+                continue
+            dlt   = fmt_delta(price, prev.get("commodities", {}), f"{key}_price")
+            chg30 = commodities.get(f"{key}_chg30d")
+            chg30_str = f"  ·  30д: {chg30:+.1f}%" if chg30 is not None else ""
+            lines.append(f"  {label}:  <code>{_v(price, suffix='')}</code>{dlt}{chg30_str}")
     else:
         lines.append("  <i>данные недоступны</i>")
 

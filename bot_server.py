@@ -12,9 +12,10 @@ Telegram bot server — одноразовый проход по апдейта�
   /guide  — инструкция по интерпретации
   /status — время последнего скана
   /users  — (admin) список подписчиков
+  /ticker — анализ произвольного тикера (тот же TA, что в карточках скринеров)
 """
 
-import os, sys, json, traceback
+import os, re, sys, json, traceback
 from pathlib import Path
 
 sys.stdout.reconfigure(line_buffering=True)  # flush лог после каждой строки
@@ -181,7 +182,7 @@ def block_user(target_id: str, admin_id: str):
 # ── Импорт логики скринеров ───────────────────────────────────────────────
 
 from screener_bot import run_scan as screener_run_scan
-from screener_bot import format_rating, SCREENERS
+from screener_bot import format_rating, SCREENERS, get_ta
 
 SCREENER_MAP = {s["id"]: s for s in SCREENERS}
 
@@ -363,6 +364,40 @@ def handle_scan_command(ids: list, chat_id: str):
     except Exception:
         tg_send(f"❌ Ошибка:\n<code>{traceback.format_exc()[-500:]}</code>", chat_id)
 
+# ── Анализ произвольного тикера ────────────────────────────────────────────
+# Тот же TA, что считается для карточек в скринерах (get_ta), но по запросу
+# для любого тикера — не только для тех, что прошли отбор.
+
+TICKER_RE = re.compile(r"^/ticker\s+([A-Za-z.]{1,10})$")
+
+def format_ta_message(ticker: str, ta: dict) -> str:
+    lines = [f"📈 <b>{ticker}</b>"]
+    lines.append(f"{ta.get('trend','')} &nbsp; MACD {ta.get('macd','')} &nbsp; "
+                 f"RSI {ta.get('rsi','—')} {ta.get('rsi_lbl','')}")
+    lines.append(f"Цена закрытия на {ta.get('price_date','—')}: <b>${ta.get('entry','—')}</b>")
+    lines.append(f"MA50: ${ta.get('ma50','—')}" + (f"  MA200: ${ta['ma200']}" if ta.get("ma200") else ""))
+    lines.append(f"Поддержка: ${ta.get('support','—')}  Сопротивление: ${ta.get('resistance','—')}")
+    lines.append("")
+    lines.append(f"SL: <b>${ta.get('sl','—')}</b> ({ta.get('sl_pct','—')})")
+    lines.append(f"TP1: <b>${ta.get('tp1','—')}</b> ({ta.get('tp1_pct','—')})")
+    lines.append(f"TP2: <b>${ta.get('tp2','—')}</b> ({ta.get('tp2_pct','—')})")
+    if ta.get("earn_date"):
+        lines.append("")
+        lines.append(f"📅 Посл. отчёт: {ta['earn_date']} — цена закрытия ${ta.get('earn_close','—')}")
+    return "\n".join(lines)
+
+def handle_ticker_command(text: str, chat_id: str):
+    m = TICKER_RE.match(text)
+    if not m:
+        tg_send("Формат: <code>/ticker TSLA</code>", chat_id)
+        return
+    symbol = m.group(1).upper()
+    ta = get_ta(symbol)
+    if not ta:
+        tg_send(f"Нет данных по «{symbol}» — проверь тикер или попробуй позже.", chat_id)
+        return
+    tg_send(format_ta_message(symbol, ta), chat_id)
+
 # ── Обработка команд ───────────────────────────────────────────────────────
 
 HELP_TEXT = (
@@ -425,6 +460,8 @@ def handle(message: dict):
     elif text.startswith("/block ") and is_admin(chat_id):
         target = text.split(maxsplit=1)[1].strip()
         block_user(target, chat_id)
+    elif text.startswith("/ticker "):
+        handle_ticker_command(text, chat_id)
     else:
         tg_send_kb("Не знаю такой команды.", chat_id, MAIN_KB)
 
@@ -465,6 +502,7 @@ def register_commands():
         {"command": "guide",  "description": "📖 Инструкция по интерпретации"},
         {"command": "status", "description": "🕐 Последний скан"},
         {"command": "users",  "description": "👥 Список подписчиков (admin)"},
+        {"command": "ticker", "description": "📈 Анализ тикера, например /ticker TSLA"},
         {"command": "start",  "description": "📋 Главное меню"},
     ]
     resp = requests.post(f"{API}/setMyCommands", json={"commands": commands}, timeout=10)

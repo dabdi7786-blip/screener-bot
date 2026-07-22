@@ -312,11 +312,12 @@ def _delta_html(val, prev_section: dict, key: str) -> str:
 
 def _build_rates_section(rates: dict, prev_rates: dict = None) -> str:
     prev_rates = prev_rates or {}
-    nbrk     = rates.get("nbrk", {})
-    kase     = rates.get("kase", {})
-    us       = rates.get("us", {})
-    bonds    = rates.get("bonds", {})
-    currency = rates.get("currency", {})
+    nbrk        = rates.get("nbrk", {})
+    kase        = rates.get("kase", {})
+    us          = rates.get("us", {})
+    bonds       = rates.get("bonds", {})
+    currency    = rates.get("currency", {})
+    commodities = rates.get("commodities", {})
 
     def row(label, val, suffix="%", delta_key=None, prev=None):
         v = _safe(val, ".2f", suffix) if val is not None else "—"
@@ -345,6 +346,28 @@ def _build_rates_section(rates: dict, prev_rates: dict = None) -> str:
         + row("TRY/KZT", currency.get("try_kzt"), suffix=" ₸", delta_key="try_kzt", prev=prev_cur)
     ) if currency else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
 
+    prev_comm = prev_rates.get("commodities", {})
+    def commodity_row(label, key, suffix=" $"):
+        price = commodities.get(f"{key}_price")
+        if price is None:
+            return ""
+        d = _delta_html(price, prev_comm, f"{key}_price")
+        chg30 = commodities.get(f"{key}_chg30d")
+        chg30_html = ""
+        if chg30 is not None:
+            cls = "delta-up" if chg30 > 0 else "delta-dn" if chg30 < 0 else ""
+            chg30_html = f' <span class="{cls}" style="font-size:10px">30д {chg30:+.1f}%</span>'
+        v = _safe(price, ".2f", suffix)
+        return f'<div class="rate-row"><span class="rate-label">{label}</span><span class="rate-val">{v}{d}{chg30_html}</span></div>'
+
+    commodity_rows = (
+        commodity_row("Нефть (WTI)", "oil")
+        + commodity_row("Золото", "gold")
+        + commodity_row("Серебро", "silver")
+        + commodity_row("Медь", "copper")
+        + commodity_row("Уран (URA)", "uranium")
+    ) if commodities else '<div class="rate-row"><span class="rate-label" style="color:var(--muted)">данные недоступны</span></div>'
+
     prev_us = prev_rates.get("us", {})
     effr = us.get("effr")
     effr_str = (f"{us.get('effr_lo','')} — {us.get('effr_hi','')}" if us.get("effr_lo") else _safe(effr, ".2f", "%")) if effr else "—"
@@ -369,11 +392,12 @@ def _build_rates_section(rates: dict, prev_rates: dict = None) -> str:
 
     return f"""<div class="section" id="rates">
 <div class="sc-title">💹 Обзор ставок</div>
-<div class="sc-desc">НБРК · KASE · Валюты · US Treasury · Global Bonds</div>
+<div class="sc-desc">НБРК · KASE · Валюты · Сырьё · US Treasury · Global Bonds</div>
 <div class="rates-grid">
   <div class="rates-card"><h3>🇰🇿 НБРК — Монетарная политика</h3>{nbrk_rows}</div>
   <div class="rates-card"><h3>🏦 KASE — Денежный рынок</h3>{kase_rows}</div>
   <div class="rates-card"><h3>💱 Валюты</h3>{currency_rows}</div>
+  <div class="rates-card"><h3>🛢️ Сырьевые товары</h3>{commodity_rows}</div>
   <div class="rates-card"><h3>🇺🇸 США — Ставки и трежерис</h3>{us_rows}</div>
   <div class="rates-card"><h3>🌍 Мировые облигации (10Y)</h3>{bond_rows}</div>
 </div>

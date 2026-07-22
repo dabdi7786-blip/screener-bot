@@ -834,15 +834,16 @@ def main():
     try:
         from rates_fetcher import (get_nbrk_rates, get_kase_rates,
                                     get_us_rates, get_global_bonds,
-                                    get_currency_rates,
+                                    get_currency_rates, get_commodity_rates,
                                     build_rates_message, load_previous, save_current)
         prev = load_previous()
         rates_raw = {
-            "nbrk":     get_nbrk_rates(),
-            "kase":     get_kase_rates(),
-            "us":       get_us_rates(),
-            "bonds":    get_global_bonds(),
-            "currency": get_currency_rates(),
+            "nbrk":        get_nbrk_rates(),
+            "kase":        get_kase_rates(),
+            "us":          get_us_rates(),
+            "bonds":       get_global_bonds(),
+            "currency":    get_currency_rates(),
+            "commodities": get_commodity_rates(),
         }
         save_current(rates_raw)
         rates_msg = build_rates_message(rates_raw, prev)

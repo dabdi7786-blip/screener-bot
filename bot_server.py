@@ -12,12 +12,9 @@ Telegram bot server — одноразовый проход по апдейта�
   /guide  — инструкция по интерпретации
   /status — время последнего скана
   /users  — (admin) список подписчиков
-  /buy    — (admin) поставить заявку на покупку в очередь (paper,
-            исполняется локально при следующем запуске ibkr_local_execute.py)
-  /orders — (admin) список заявок и их статус
 """
 
-import os, re, sys, json, traceback
+import os, sys, json, traceback
 from pathlib import Path
 
 sys.stdout.reconfigure(line_buffering=True)  # flush лог после каждой строки
@@ -30,9 +27,8 @@ load_dotenv(Path(__file__).parent / ".env")
 TOKEN   = os.getenv("TELEGRAM_TOKEN", "")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 API     = f"https://api.telegram.org/bot{TOKEN}"
-STATUS_FILE  = Path(__file__).parent / "last_scan.json"
-USERS_FILE   = Path(__file__).parent / "users.json"
-ORDERS_FILE  = Path(__file__).parent / "pending_orders.json"
+STATUS_FILE = Path(__file__).parent / "last_scan.json"
+USERS_FILE  = Path(__file__).parent / "users.json"
 
 # ── Telegram helpers ───────────────────────────────────────────────────────
 
@@ -102,16 +98,6 @@ def save_users(users: dict):
 
 def is_admin(chat_id: str) -> bool:
     return chat_id == CHAT_ID
-
-# ── Заявки на покупку (paper, исполняются локально) ────────────────────────
-
-def load_orders() -> list:
-    if ORDERS_FILE.exists():
-        return json.loads(ORDERS_FILE.read_text())
-    return []
-
-def save_orders(orders: list):
-    ORDERS_FILE.write_text(json.dumps(orders, ensure_ascii=False, indent=2))
 
 def is_allowed(chat_id: str) -> bool:
     if is_admin(chat_id):
@@ -377,84 +363,6 @@ def handle_scan_command(ids: list, chat_id: str):
     except Exception:
         tg_send(f"❌ Ошибка:\n<code>{traceback.format_exc()[-500:]}</code>", chat_id)
 
-# ── Заявки на покупку ──────────────────────────────────────────────────────
-# Команда только ставит заявку в очередь — ничего не покупает сама. Исполнение
-# происходит локально, в ibkr_local_execute.py, когда сам откроешь Gateway
-# и подтвердишь каждую заявку вручную. Только paper-аккаунт.
-
-BUY_RE = re.compile(r"^/buy\s+([A-Za-z.]{1,10})\s+(\d+)$")
-
-def handle_buy_command(text: str, chat_id: str):
-    m = BUY_RE.match(text)
-    if not m:
-        tg_send("Формат: <code>/buy TICKER QTY</code>, например <code>/buy AAPL 10</code>", chat_id)
-        return
-
-    symbol, qty = m.group(1).upper(), int(m.group(2))
-    orders = load_orders()
-    order_id = (max((o["id"] for o in orders), default=0)) + 1
-    orders.append({
-        "id": order_id,
-        "symbol": symbol,
-        "qty": qty,
-        "side": "BUY",
-        "status": "pending",
-        "requested_by": chat_id,
-        "queued_at": datetime.now().isoformat(timespec="seconds"),
-        "executed_at": None,
-        "fill_price": None,
-    })
-    save_orders(orders)
-
-    confirm_kb = {"inline_keyboard": [[
-        {"text": "✅ Подтвердить", "callback_data": f"confirm_buy_{order_id}"},
-        {"text": "❌ Отменить",    "callback_data": f"cancel_buy_{order_id}"},
-    ]]}
-    tg_send_kb(
-        f"📝 Заявка #{order_id}: <b>BUY {qty} {symbol}</b> (paper).\n"
-        f"Подтверди кнопкой ниже — исполнится, когда сам в следующий раз "
-        f"запустишь Gateway локально (<code>ibkr_local_execute.py</code>).",
-        chat_id, confirm_kb,
-    )
-
-def handle_orders_command(chat_id: str):
-    orders = load_orders()
-    if not orders:
-        tg_send("ℹ️ Заявок пока нет.", chat_id)
-        return
-    lines = ["📝 <b>Заявки</b>"]
-    status_emoji = {
-        "pending": "⏳", "confirmed": "👍", "executed": "✅",
-        "submitted": "📤", "cancelled": "🚫", "failed": "❌",
-    }
-    for o in orders[-20:]:
-        emoji = status_emoji.get(o["status"], "•")
-        line = f"{emoji} #{o['id']} {o['side']} {o['qty']} {o['symbol']} — {o['status']}"
-        if o.get("fill_price"):
-            line += f" @ {o['fill_price']}"
-        lines.append(line)
-    tg_send("\n".join(lines), chat_id)
-
-def handle_buy_confirm(order_id: int, new_status: str, chat_id: str):
-    orders = load_orders()
-    order = next((o for o in orders if o["id"] == order_id), None)
-    if order is None:
-        tg_send(f"Заявка #{order_id} не найдена.", chat_id)
-        return
-    if order["status"] != "pending":
-        tg_send(f"Заявка #{order_id} уже в статусе «{order['status']}» — повторно не меняю.", chat_id)
-        return
-    order["status"] = new_status
-    save_orders(orders)
-    if new_status == "confirmed":
-        tg_send(
-            f"👍 Заявка #{order_id} подтверждена: <b>BUY {order['qty']} {order['symbol']}</b>.\n"
-            f"Исполнится при следующем запуске <code>ibkr_local_execute.py</code> локально.",
-            chat_id,
-        )
-    else:
-        tg_send(f"🚫 Заявка #{order_id} отменена.", chat_id)
-
 # ── Обработка команд ───────────────────────────────────────────────────────
 
 HELP_TEXT = (
@@ -517,10 +425,6 @@ def handle(message: dict):
     elif text.startswith("/block ") and is_admin(chat_id):
         target = text.split(maxsplit=1)[1].strip()
         block_user(target, chat_id)
-    elif text.startswith("/buy ") and is_admin(chat_id):
-        handle_buy_command(text, chat_id)
-    elif text == "/orders" and is_admin(chat_id):
-        handle_orders_command(chat_id)
     else:
         tg_send_kb("Не знаю такой команды.", chat_id, MAIN_KB)
 
@@ -531,12 +435,6 @@ def handle_callback(data: str, chat_id: str):
         return
     if data.startswith("block_") and is_admin(chat_id):
         block_user(data[6:], chat_id)
-        return
-    if data.startswith("confirm_buy_") and is_admin(chat_id):
-        handle_buy_confirm(int(data[len("confirm_buy_"):]), "confirmed", chat_id)
-        return
-    if data.startswith("cancel_buy_") and is_admin(chat_id):
-        handle_buy_confirm(int(data[len("cancel_buy_"):]), "cancelled", chat_id)
         return
 
     if not is_allowed(chat_id):
@@ -567,8 +465,6 @@ def register_commands():
         {"command": "guide",  "description": "📖 Инструкция по интерпретации"},
         {"command": "status", "description": "🕐 Последний скан"},
         {"command": "users",  "description": "👥 Список подписчиков (admin)"},
-        {"command": "buy",    "description": "🛒 Заявка на покупку, paper (admin)"},
-        {"command": "orders", "description": "📝 Статус заявок (admin)"},
         {"command": "start",  "description": "📋 Главное меню"},
     ]
     resp = requests.post(f"{API}/setMyCommands", json={"commands": commands}, timeout=10)

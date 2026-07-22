@@ -66,4 +66,5 @@ jobs:
           done
           [ -d docs ] && git add docs/
           git diff --cached --quiet || git commit -m "chore: update bot state [skip ci]"
+          git pull --rebase
           git push

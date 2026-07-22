@@ -460,7 +460,7 @@ def handle(message: dict):
     elif text.startswith("/block ") and is_admin(chat_id):
         target = text.split(maxsplit=1)[1].strip()
         block_user(target, chat_id)
-    elif text.startswith("/ticker "):
+    elif text == "/ticker" or text.startswith("/ticker "):
         handle_ticker_command(text, chat_id)
     else:
         tg_send_kb("Не знаю такой команды.", chat_id, MAIN_KB)

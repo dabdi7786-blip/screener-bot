@@ -13,6 +13,7 @@ Telegram bot server — одноразовый проход по апдейта�
   /status — время последнего скана
   /users  — (admin) список подписчиков
   /ticker — анализ произвольного тикера (тот же TA, что в карточках скринеров)
+  /rate   — рейтинг произвольного тикера по критериям всех 3 скринеров
 """
 
 import os, re, sys, json, traceback
@@ -182,7 +183,7 @@ def block_user(target_id: str, admin_id: str):
 # ── Импорт логики скринеров ───────────────────────────────────────────────
 
 from screener_bot import run_scan as screener_run_scan
-from screener_bot import format_rating, SCREENERS, get_ta
+from screener_bot import format_rating, SCREENERS, get_ta, analyze_ticker
 
 SCREENER_MAP = {s["id"]: s for s in SCREENERS}
 
@@ -398,6 +399,59 @@ def handle_ticker_command(text: str, chat_id: str):
         return
     tg_send(format_ta_message(symbol, ta), chat_id)
 
+# ── Рейтинг тикера по критериям скринеров ──────────────────────────────────
+# Тот же fn/score_fn, что и в реальном скане (screener_bot.SCREENERS), но для
+# одного произвольного тикера по запросу — проходит/не проходит каждый
+# скринер + разбивка по категориям, не только TA.
+
+RATE_RE = re.compile(r"^/rate\s+([A-Za-z.]{1,10})$")
+
+def format_rate_message(ticker: str, result: dict) -> str:
+    row, ta = result["row"], result["ta"]
+    lines = [f"📊 <b>{ticker}</b> — рейтинг по критериям скринеров\n"]
+
+    price = row.get("Price")
+    price_line = f"Цена: <b>${price}</b>"
+    if ta.get("price_date"):
+        price_line += f" (закрытие на {ta['price_date']})"
+    lines.append(price_line)
+
+    cons    = row.get("Consensus", "—")
+    upside  = row.get("Upside_%")
+    n_an    = row.get("Analysts")
+    cons_line = f"Консенсус аналитиков: {cons}"
+    if upside is not None:
+        cons_line += f", апсайд {upside:+.1f}%"
+    if n_an:
+        cons_line += f" ({n_an} аналитиков)"
+    lines.append(cons_line)
+
+    if ta:
+        lines.append(f"{ta.get('trend','')} &nbsp; MACD {ta.get('macd','')} &nbsp; "
+                     f"RSI {ta.get('rsi','—')} {ta.get('rsi_lbl','')}")
+    lines.append("")
+
+    for sc in result["screeners"]:
+        mark  = "✅ проходит" if sc["passed"] else "❌ не проходит"
+        total = sc["scores"]["total"]
+        cats  = " · ".join(f"{k} {v}" for k, v in sc["scores"].items() if k != "total")
+        lines.append(f"{sc['emoji']} <b>{sc['name']}</b>: {mark} — {total}/{sc['max_score']}")
+        lines.append(f"  {cats}")
+
+    return "\n".join(lines)
+
+def handle_rate_command(text: str, chat_id: str):
+    m = RATE_RE.match(text)
+    if not m:
+        tg_send("Формат: <code>/rate TSLA</code>", chat_id)
+        return
+    symbol = m.group(1).upper()
+    result = analyze_ticker(symbol)
+    if not result:
+        tg_send(f"Нет данных по «{symbol}» — проверь тикер или попробуй позже.", chat_id)
+        return
+    tg_send(format_rate_message(symbol, result), chat_id)
+
 # ── Обработка команд ───────────────────────────────────────────────────────
 
 HELP_TEXT = (
@@ -462,6 +516,8 @@ def handle(message: dict):
         block_user(target, chat_id)
     elif text == "/ticker" or text.startswith("/ticker "):
         handle_ticker_command(text, chat_id)
+    elif text == "/rate" or text.startswith("/rate "):
+        handle_rate_command(text, chat_id)
     else:
         tg_send_kb("Не знаю такой команды.", chat_id, MAIN_KB)
 
@@ -503,6 +559,7 @@ def register_commands():
         {"command": "status", "description": "🕐 Последний скан"},
         {"command": "users",  "description": "👥 Список подписчиков (admin)"},
         {"command": "ticker", "description": "📈 Анализ тикера, например /ticker TSLA"},
+        {"command": "rate",   "description": "📊 Рейтинг тикера по критериям скринеров, /rate TSLA"},
         {"command": "start",  "description": "📋 Главное меню"},
     ]
     resp = requests.post(f"{API}/setMyCommands", json={"commands": commands}, timeout=10)

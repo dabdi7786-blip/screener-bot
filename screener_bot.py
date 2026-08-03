@@ -810,6 +810,34 @@ def run_scan(screener_ids: list) -> dict:
 
     return result
 
+
+def analyze_ticker(ticker: str) -> dict | None:
+    """Анализ одного произвольного тикера по критериям всех 3 скринеров — не
+    часть общего скана по S&P 500, а разовый запрос (например, для /rate в
+    Telegram). Реюзает fetch_info/get_ta и те же fn/score_fn, что и run_scan,
+    просто без ранжирования и без записи в CSV/дашборд.
+    Возвращает {"row": {...}, "ta": {...}, "screeners": [{"id","name","emoji",
+    "passed","scores","max_score"}, ...]} или None, если тикер не резолвится."""
+    ticker = ticker.upper()
+    row = fetch_info(ticker)
+    if row is None:
+        return None
+    ta = get_ta(ticker)
+
+    screeners = []
+    for sc in SCREENERS:
+        try:
+            passed = bool(sc["fn"](row))
+        except Exception:
+            passed = False
+        scores = sc["score_fn"](row, ta)
+        screeners.append({
+            "id": sc["id"], "name": sc["name"], "emoji": sc["emoji"],
+            "passed": passed, "scores": scores, "max_score": sc["max_score"],
+        })
+
+    return {"row": row, "ta": ta, "screeners": screeners}
+
 # ── Основной цикл ──────────────────────────────────────────────────────────
 
 def main():

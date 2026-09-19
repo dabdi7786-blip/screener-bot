@@ -59,5 +59,27 @@ jobs:
           done
           [ -d docs ] && git add docs/
           git diff --cached --quiet || git commit -m "chore: update scan results [skip ci]"
-          git pull --rebase
-          git push
+          # Retry push on transient remote failures (e.g. GitHub 500s) --
+          # the only real historical failure of this workflow (run 34954550665,
+          # 2026-09-15) was a successful scan whose final `git push` hit a
+          # transient "Internal Server Error" with no retry, failing the whole job.
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase && git push && break
+            echo "push attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+            if [ "$attempt" = "5" ]; then
+              echo "::error::git push failed after 5 attempts"
+              exit 1
+            fi
+          done
+
+      - name: Notify on scan failure
+        if: failure()
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
+            -d chat_id="${TELEGRAM_CHAT_ID}" \
+            -d parse_mode="HTML" \
+            -d text="⚠️ <b>Scheduled Scan failed</b> (run ${{ github.run_id }}). Check the Actions log: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true

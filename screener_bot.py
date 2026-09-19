@@ -844,7 +844,19 @@ def main():
     date_str = datetime.now().strftime("%d.%m.%Y %H:%M")
     print(f"[{date_str}] Запуск скринеров...")
 
-    scan = run_scan([sc["id"] for sc in SCREENERS])
+    try:
+        scan = run_scan([sc["id"] for sc in SCREENERS])
+    except Exception as e:
+        # run_scan() fetches ~500 tickers over the network — an unhandled
+        # exception here used to kill the whole run silently (no Telegram
+        # message at all, GitHub Actions is the only signal). Alert first,
+        # then re-raise so the workflow still fails loudly (exit code / logs).
+        print(f"[run_scan] ошибка: {e}")
+        try:
+            tg_send(f"⚠️ <b>Скан упал с ошибкой</b>\n<code>{type(e).__name__}: {e}</code>")
+        except Exception as tg_e:
+            print(f"[tg alert] тоже не отправилось: {tg_e}")
+        raise
 
     dashboard_data = {}
     rating_lines   = [f"📊 <b>Screener — {date_str}</b>"]

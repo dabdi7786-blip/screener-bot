@@ -66,5 +66,18 @@ jobs:
           done
           [ -d docs ] && git add docs/
           git diff --cached --quiet || git commit -m "chore: update bot state [skip ci]"
-          git pull --rebase
-          git push
+          # Retry push on transient remote failures -- same fix as scan.yml
+          # (see its comment for the observed failure this addresses). No
+          # Telegram failure alert here on purpose: this job runs every 10
+          # minutes, so a persistent failure would spam the chat; the daily
+          # Scheduled Scan's own failure alert plus the Actions tab are the
+          # intended signal for this workflow.
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase && git push && break
+            echo "push attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+            if [ "$attempt" = "5" ]; then
+              echo "::error::git push failed after 5 attempts"
+              exit 1
+            fi
+          done

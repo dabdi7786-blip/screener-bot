@@ -27,6 +27,24 @@ def test_classify_uranium_nuclear():
     assert classify_category(_cluster("Cameco signs long-term uranium supply deal")) == "URANIUM_NUCLEAR"
 
 
+def test_classify_russia_uranium_sanctions_routes_to_uranium_not_russia():
+    """Rosatom is a specific uranium-industry hit, so it should outweigh
+    the single generic 'Russian' hit and route to URANIUM_NUCLEAR rather
+    than the broader RUSSIA bucket."""
+    cluster = _cluster("US sanctions Rosatom, Russia's state uranium giant")
+    assert classify_category(cluster) == "URANIUM_NUCLEAR"
+
+
+def test_classify_china_uranium_routes_to_uranium_nuclear():
+    cluster = _cluster("China ramps up uranium enrichment capacity amid nuclear buildout")
+    assert classify_category(cluster) == "URANIUM_NUCLEAR"
+
+
+def test_classify_haleu_and_import_ban_keywords_match_uranium_nuclear():
+    assert classify_category(_cluster("Senate advances Russian uranium import ban renewal")) == "URANIUM_NUCLEAR"
+    assert classify_category(_cluster("HALEU supply deal signed for advanced reactor fleet")) == "URANIUM_NUCLEAR"
+
+
 def test_classify_ai_semis():
     assert classify_category(_cluster("Nvidia unveils new AI chip amid export control concerns")) == "AI_SEMIS"
 

@@ -63,7 +63,7 @@ GOOGLE_NEWS_QUERIES: tuple[tuple[str, str], ...] = (
     ("MIDDLE_EAST", f"Israel Iran Gaza Houthi Hormuz ({_REPUTABLE_DOMAINS})"),
     ("RUSSIA", f"Russia Ukraine sanctions ({_REPUTABLE_DOMAINS})"),
     ("OIL_GAS", f"OPEC Brent WTI oil ({_REPUTABLE_DOMAINS})"),
-    ("URANIUM_NUCLEAR", f"uranium Cameco Kazatomprom nuclear fuel ({_REPUTABLE_DOMAINS})"),
+    ("URANIUM_NUCLEAR", f"uranium Cameco Kazatomprom nuclear fuel Rosatom sanctions China ({_REPUTABLE_DOMAINS})"),
     ("AI_SEMIS", f"Nvidia AMD TSMC AI chips semiconductor ({_REPUTABLE_DOMAINS})"),
 )
 

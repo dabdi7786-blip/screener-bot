@@ -1,0 +1,75 @@
+name: Overnight News Brief
+
+# Independent of the stock screener workflows (scan.yml / bot_poll.yml):
+# separate workflow file, separate concurrency group, separate job --
+# a failure here cannot block them and a screener failure cannot block
+# this. Sends ONE new, independent, information-only Telegram briefing.
+# Does not touch trading logic, production_gate, or app/*.
+
+on:
+  schedule:
+    - cron: "30 4 * * *"   # 07:30 (UTC+3) daily -- repo convention is a fixed UTC+3 offset, see scan.yml's own comment
+  workflow_dispatch:
+    inputs:
+      force_send:
+        description: "Send even if today's briefing was already sent (manual test only; does not corrupt the real daily dedup record)"
+        required: false
+        default: "false"
+        type: boolean
+
+concurrency:
+  group: overnight-news-brief
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  news_brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Build and send overnight news brief
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          FORCE_SEND: ${{ github.event.inputs.force_send == 'true' && '1' || '' }}
+        run: python news_brief_run.py
+
+      - name: Upload run log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-brief-run-log-${{ github.run_id }}
+          path: news_brief_run_log.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Commit updated dedup state
+        if: always()
+        run: |
+          git config user.name "news-brief-bot"
+          git config user.email "actions@users.noreply.github.com"
+          [ -f news_brief_state.json ] && git add news_brief_state.json
+          git diff --cached --quiet || git commit -m "chore: update overnight news brief state [skip ci]"
+          # Retry push on transient remote failures -- same fix already
+          # applied to scan.yml/bot_poll.yml (see scan.yml's comment for
+          # the observed failure this addresses). If there was nothing to
+          # commit, `git push` is simply a no-op and succeeds immediately.
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase && git push && break
+            echo "push attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+            if [ "$attempt" = "5" ]; then
+              echo "::error::git push failed after 5 attempts"
+              exit 1
+            fi
+          done

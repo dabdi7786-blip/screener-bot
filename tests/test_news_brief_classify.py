@@ -3,7 +3,7 @@ news_brief.classify tests (spec category: 6 category classification).
 Includes the live-discovered word-boundary regression ("putin" inside
 "computing").
 """
-from news_brief.classify import classify_all, classify_category, classify_market_impact
+from news_brief.classify import classify_all, classify_category, classify_impact_reasons, classify_market_impact
 from news_brief.models import NewsCluster
 
 
@@ -79,3 +79,26 @@ def test_classify_all_mutates_clusters_in_place():
     clusters = [_cluster("OPEC+ agrees to raise crude oil output")]
     classify_all(clusters)
     assert clusters[0].category == "OIL_GAS"
+
+
+def test_impact_reasons_has_matching_key_for_every_impact_asset():
+    cluster = _cluster("Tanker attacked near Strait of Hormuz, oil markets on alert")
+    cluster.category = "MIDDLE_EAST"
+    impact = classify_market_impact(cluster)
+    reasons = classify_impact_reasons(cluster)
+    assert set(reasons.keys()) == set(impact.keys())
+    assert all(isinstance(r, str) and r for r in reasons.values())  # short, non-empty, real phrase -- never blank
+
+
+def test_impact_reasons_empty_when_no_impact_keywords():
+    cluster = _cluster("IAEA publishes annual safeguards report")
+    cluster.category = "URANIUM_NUCLEAR"
+    assert classify_impact_reasons(cluster) == {}
+
+
+def test_classify_all_sets_impact_reasons_alongside_market_impact():
+    clusters = [_cluster("OPEC+ agrees to raise crude oil output amid tight inventories")]
+    classify_all(clusters)
+    c = clusters[0]
+    assert c.market_impact  # sanity: this headline does hit an impact rule
+    assert set(c.impact_reasons.keys()) == set(c.market_impact.keys())

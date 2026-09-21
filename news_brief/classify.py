@@ -47,32 +47,46 @@ _CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 _CATEGORY_ORDER = ("MIDDLE_EAST", "RUSSIA", "OIL_GAS", "URANIUM_NUCLEAR", "AI_SEMIS", "WORLD")
 
-# (category, keyword_substring) -> (impact_level, affected_asset_label). Order matters:
-# first match wins within a category, most specific/severe first.
-_IMPACT_RULES: dict[str, tuple[tuple[str, str, str], ...]] = {
+# (category, keyword_substring) -> (impact_level, affected_asset_label, short RU cause->effect reason).
+# Order matters: first match wins within a category, most specific/severe first.
+# The reason is a short, deterministic phrase tied to the matched keyword's own
+# well-known mechanism (e.g. "Ormuz strait" -> "oil shipping risk") -- never a
+# generated/inferred explanation, so it carries no fabrication risk.
+_IMPACT_RULES: dict[str, tuple[tuple[str, str, str, str], ...]] = {
     "MIDDLE_EAST": (
-        ("hormuz", "HIGH", "Oil/Shipping"), ("red sea", "HIGH", "Shipping"),
-        ("attack", "HIGH", "Oil/Energy infrastructure"), ("tanker", "HIGH", "Oil/Shipping"),
-        ("sanctions", "MEDIUM", "Energy/Trade"),
+        ("hormuz", "HIGH", "Oil/Shipping", "риск перекрытия Ормузского пролива → поставки нефти"),
+        ("red sea", "HIGH", "Shipping", "риск для судоходства через Красное море"),
+        ("attack", "HIGH", "Oil/Energy infrastructure", "риск для энергетической инфраструктуры региона"),
+        ("tanker", "HIGH", "Oil/Shipping", "риск для танкерных поставок нефти"),
+        ("sanctions", "MEDIUM", "Energy/Trade", "санкции → торговые и энергетические потоки"),
     ),
     "OIL_GAS": (
-        ("hormuz", "HIGH", "Oil"), ("opec", "HIGH", "Oil"), ("refinery", "MEDIUM", "Oil/Refining"),
-        ("pipeline", "MEDIUM", "Oil/Gas"), ("inventories", "MEDIUM", "Oil"),
+        ("hormuz", "HIGH", "Oil", "узкое место мировых поставок нефти"),
+        ("opec", "HIGH", "Oil", "решение ОПЕК+ по добыче → цены на нефть"),
+        ("refinery", "MEDIUM", "Oil/Refining", "перебои переработки → цены на топливо"),
+        ("pipeline", "MEDIUM", "Oil/Gas", "перебои трубопроводных поставок"),
+        ("inventories", "MEDIUM", "Oil", "запасы нефти → краткосрочная динамика цен"),
     ),
     "RUSSIA": (
-        ("pipeline", "MEDIUM", "Oil/Gas"), ("refinery", "MEDIUM", "Oil"),
-        ("sanctions", "MEDIUM", "Energy/Trade"), ("port", "MEDIUM", "Shipping"),
+        ("pipeline", "MEDIUM", "Oil/Gas", "поставки нефти/газа по трубопроводам"),
+        ("refinery", "MEDIUM", "Oil", "удары по НПЗ → переработка и экспорт нефтепродуктов"),
+        ("sanctions", "MEDIUM", "Energy/Trade", "санкции → энергетический экспорт РФ"),
+        ("port", "MEDIUM", "Shipping", "экспорт через морские порты"),
     ),
     "URANIUM_NUCLEAR": (
-        ("export restriction", "MEDIUM", "Uranium"), ("supply", "MEDIUM", "Uranium"),
-        ("enrichment", "MEDIUM", "Uranium/Nuclear fuel"),
+        ("export restriction", "MEDIUM", "Uranium", "ограничение экспорта урана → предложение на рынке"),
+        ("supply", "MEDIUM", "Uranium", "поставки урана → цены на топливо для АЭС"),
+        ("enrichment", "MEDIUM", "Uranium/Nuclear fuel", "обогащение урана → предложение ядерного топлива"),
     ),
     "AI_SEMIS": (
-        ("export control", "HIGH", "Semiconductors"), ("chip export", "HIGH", "Semiconductors"),
-        ("capex", "MEDIUM", "AI/Data centers"), ("data center", "MEDIUM", "AI/Data centers"),
+        ("export control", "HIGH", "Semiconductors", "экспортные ограничения на чипы → доступ к рынкам"),
+        ("chip export", "HIGH", "Semiconductors", "поставки чипов на ключевые рынки"),
+        ("capex", "MEDIUM", "AI/Data centers", "капзатраты на ИИ-инфраструктуру"),
+        ("data center", "MEDIUM", "AI/Data centers", "спрос на дата-центры → чипы/энергию"),
     ),
     "WORLD": (
-        ("interest rate", "MEDIUM", "Broad equities"), ("inflation", "MEDIUM", "Broad equities"),
+        ("interest rate", "MEDIUM", "Broad equities", "решение по ключевой ставке → стоимость капитала"),
+        ("inflation", "MEDIUM", "Broad equities", "инфляция в США → на решение ФРС по ставке"),
     ),
 }
 
@@ -108,17 +122,29 @@ def classify_category(cluster: NewsCluster) -> str | None:
     return None  # no specific-category title match and no WORLD match -- excluded, not force-defaulted
 
 
-def classify_market_impact(cluster: NewsCluster) -> dict[str, str]:
+def _classify_impact_and_reasons(cluster: NewsCluster) -> tuple[dict[str, str], dict[str, str]]:
     text = f"{cluster.title} {cluster.summary}".lower()
     category = cluster.category or "WORLD"
     impact: dict[str, str] = {}
-    for keyword, level, asset in _IMPACT_RULES.get(category, ()):
+    reasons: dict[str, str] = {}
+    for keyword, level, asset, reason in _IMPACT_RULES.get(category, ()):
         if _kw_in(keyword, text):
-            # keep the highest-severity label per asset if multiple keywords hit
+            # keep the highest-severity label (and its matching reason) per asset if multiple keywords hit
             existing = impact.get(asset)
             if existing is None or _severity(level) > _severity(existing):
                 impact[asset] = level
+                reasons[asset] = reason
+    return impact, reasons
+
+
+def classify_market_impact(cluster: NewsCluster) -> dict[str, str]:
+    impact, _reasons = _classify_impact_and_reasons(cluster)
     return impact
+
+
+def classify_impact_reasons(cluster: NewsCluster) -> dict[str, str]:
+    _impact, reasons = _classify_impact_and_reasons(cluster)
+    return reasons
 
 
 def _severity(level: str) -> int:
@@ -126,7 +152,9 @@ def _severity(level: str) -> int:
 
 
 def classify_all(clusters: list[NewsCluster]) -> None:
-    """Mutates clusters in place -- assigns .category and .market_impact."""
+    """Mutates clusters in place -- assigns .category, .market_impact,
+    and .impact_reasons (short deterministic cause->effect phrases,
+    never a generated explanation)."""
     for c in clusters:
         c.category = classify_category(c)
-        c.market_impact = classify_market_impact(c)
+        c.market_impact, c.impact_reasons = _classify_impact_and_reasons(c)

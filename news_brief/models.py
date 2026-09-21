@@ -46,6 +46,7 @@ class NewsCluster:
     sources: list[RawArticle] = field(default_factory=list)
     category: str | None = None
     market_impact: dict[str, str] = field(default_factory=dict)  # {"Oil": "HIGH", ...}
+    impact_reasons: dict[str, str] = field(default_factory=dict)  # {"Oil": "short RU cause->effect phrase", ...}
     developing: bool = False  # older than the primary window but still materially relevant
 
     @property

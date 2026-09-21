@@ -48,8 +48,12 @@ def _fmt_link(cluster: NewsCluster, translate: _Translate | None = None) -> str:
 def _fmt_impact(cluster: NewsCluster) -> str:
     if not cluster.market_impact:
         return ""
-    parts = ", ".join(f"{_ASSET_LABELS_RU.get(asset, asset)}: {level}" for asset, level in cluster.market_impact.items())
-    return f"\n   <i>Влияние на рынок: {escape(parts)}</i>"
+    pieces = []
+    for asset, level in cluster.market_impact.items():
+        label = _ASSET_LABELS_RU.get(asset, asset)
+        reason = cluster.impact_reasons.get(asset)
+        pieces.append(f"{label}: {level} ({reason})" if reason else f"{label}: {level}")
+    return f"\n   <i>Влияние на рынок: {escape(', '.join(pieces))}</i>"
 
 
 def _fmt_item(cluster: NewsCluster, translate: _Translate | None = None) -> str:

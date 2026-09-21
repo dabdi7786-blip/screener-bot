@@ -103,6 +103,23 @@ def test_build_messages_default_translate_none_leaves_english_headline_untouched
     assert any("Real headline number 0" in m for m in messages)
 
 
+def test_fmt_impact_renders_reason_in_parentheses():
+    c = _cluster(0, category="OIL_GAS")
+    c.market_impact = {"Oil": "HIGH"}
+    c.impact_reasons = {"Oil": "решение ОПЕК+ по добыче → цены на нефть"}
+    section = format_category_section("OIL_GAS", [c])
+    assert "Влияние на рынок: Нефть: HIGH (решение ОПЕК+ по добыче → цены на нефть)" in section
+
+
+def test_fmt_impact_omits_parentheses_when_no_reason_recorded():
+    c = _cluster(0, category="OIL_GAS")
+    c.market_impact = {"Oil": "HIGH"}
+    c.impact_reasons = {}  # e.g. an older/partial record with no reason for this asset
+    section = format_category_section("OIL_GAS", [c])
+    assert "Влияние на рынок: Нефть: HIGH" in section
+    assert "(" not in section.split("Влияние на рынок:")[1]
+
+
 def test_build_messages_applies_translate_to_headlines_and_sources():
     categories = {"WORLD": [_cluster(0)], "MIDDLE_EAST": [], "RUSSIA": [],
                   "OIL_GAS": [], "URANIUM_NUCLEAR": [], "AI_SEMIS": []}

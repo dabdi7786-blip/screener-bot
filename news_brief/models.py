@@ -8,12 +8,12 @@ from datetime import datetime
 CATEGORIES = ("WORLD", "MIDDLE_EAST", "RUSSIA", "OIL_GAS", "URANIUM_NUCLEAR", "AI_SEMIS")
 
 CATEGORY_LABELS = {
-    "WORLD": "🌍 WORLD",
-    "MIDDLE_EAST": "🔥 MIDDLE EAST",
-    "RUSSIA": "🇷🇺 RUSSIA",
-    "OIL_GAS": "🛢 OIL & GAS",
-    "URANIUM_NUCLEAR": "☢️ URANIUM / NUCLEAR",
-    "AI_SEMIS": "🤖 AI / SEMICONDUCTORS",
+    "WORLD": "🌍 МИР",
+    "MIDDLE_EAST": "🔥 БЛИЖНИЙ ВОСТОК",
+    "RUSSIA": "🇷🇺 РОССИЯ",
+    "OIL_GAS": "🛢 НЕФТЬ И ГАЗ",
+    "URANIUM_NUCLEAR": "☢️ УРАН / АЭС",
+    "AI_SEMIS": "🤖 ИИ / ПОЛУПРОВОДНИКИ",
 }
 
 

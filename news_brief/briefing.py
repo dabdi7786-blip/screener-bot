@@ -30,12 +30,12 @@ def _build_watchlist(selected: dict[str, list[NewsCluster]]) -> list[tuple[str, 
             for keyword, ticker in _TICKER_HINTS:
                 if keyword in text and ticker not in seen:
                     label = {
-                        "AI_SEMIS": "AI capex / semiconductor development",
-                        "URANIUM_NUCLEAR": "nuclear fuel development",
-                        "OIL_GAS": "oil supply/geopolitical development",
-                        "MIDDLE_EAST": "geopolitical/energy development",
-                        "RUSSIA": "energy/sanctions development",
-                    }.get(category, "market development")
+                        "AI_SEMIS": "капзатраты на ИИ / развитие полупроводников",
+                        "URANIUM_NUCLEAR": "развитие ядерного топлива",
+                        "OIL_GAS": "поставки нефти / геополитика",
+                        "MIDDLE_EAST": "геополитика / энергетика",
+                        "RUSSIA": "энергетика / санкции",
+                    }.get(category, "рыночное событие")
                     seen[ticker] = label
     return list(seen.items())
 

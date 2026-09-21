@@ -93,3 +93,23 @@ def test_build_messages_never_empty_even_with_no_data():
     messages = build_messages(result)
     assert len(messages) >= 1
     assert all(len(m) <= TELEGRAM_MAX_CHARS for m in messages)
+
+
+def test_build_messages_default_translate_none_leaves_english_headline_untouched():
+    categories = {"WORLD": [_cluster(0)], "MIDDLE_EAST": [], "RUSSIA": [],
+                  "OIL_GAS": [], "URANIUM_NUCLEAR": [], "AI_SEMIS": []}
+    result = _result(categories, highlights=[_cluster(0)])
+    messages = build_messages(result)  # translate=None default, used by every other test in this file
+    assert any("Real headline number 0" in m for m in messages)
+
+
+def test_build_messages_applies_translate_to_headlines_and_sources():
+    categories = {"WORLD": [_cluster(0)], "MIDDLE_EAST": [], "RUSSIA": [],
+                  "OIL_GAS": [], "URANIUM_NUCLEAR": [], "AI_SEMIS": []}
+    result = _result(categories, highlights=[_cluster(0)])
+    messages = build_messages(result, translate=lambda s: f"RU:{s}")
+    combined = "\n".join(messages)
+    assert "RU:Real headline number 0" in combined
+    # every occurrence (highlights, category item, source line) went through translate --
+    # none appear as the bare original text (i.e. not immediately preceded by "RU:")
+    assert combined.count("Real headline number 0") == combined.count("RU:Real headline number 0")

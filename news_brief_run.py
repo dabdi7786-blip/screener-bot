@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from news_brief import briefing as briefing_mod
-from news_brief import format_telegram, state, telegram
+from news_brief import format_telegram, state, telegram, translate as translate_mod
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s %(name)s: %(message)s")
 log = logging.getLogger("news_brief.run")
@@ -67,7 +67,8 @@ def main() -> int:
         stats.get("duplicates_removed", 0), stats.get("category_counts", {}),
     )
 
-    messages = format_telegram.build_messages(result)
+    translator = translate_mod.make_cached_translator()
+    messages = format_telegram.build_messages(result, translate=translator)
     if stats.get("feeds_failed", 0) > 0 and stats.get("feeds_succeeded", 0) > 0:
         messages[0] = "⚠️ Some sources unavailable; briefing based on available verified sources.\n\n" + messages[0]
         log.warning("partial source failure: %d/%d feeds failed", stats["feeds_failed"], stats["feeds_attempted"])

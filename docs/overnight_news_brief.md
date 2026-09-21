@@ -49,6 +49,41 @@ source feed. An item with no title/link is dropped. An item with no
 parseable timestamp is dropped (treated as unverifiable, never assumed
 recent).
 
+## Russian translation
+
+All template chrome (category labels, section headers, "Sources"/
+"Market impact"/"Watch today" etc.) is written in Russian directly in
+`format_telegram.py` -- no translation call needed for those, they're
+static text I authored.
+
+Real, verbatim-fetched headlines and source titles are additionally
+run through `news_brief/translate.py::translate_to_ru()` -- the same
+free, keyless `translate.googleapis.com` endpoint used unofficially by
+open-source translation libraries (no API key, no new secret, same
+"keyless where possible" posture as the Google News RSS source
+strategy). `news_brief_run.py` builds one cached translator per run
+(`translate.make_cached_translator()`) so a title repeated across the
+highlights list, a category section, and the SOURCES citation list
+only triggers one network call.
+
+This does **not** use an LLM and does not invent replacement text: on
+any failure (timeout, non-200, malformed response, or the endpoint's
+anti-automation block -- observed live from at least one network) it
+retries 3x with backoff (1/2/4s) and then **falls back to the original
+English text for that one item only**; translation failure is silent
+at the per-item level by design (spec's "never silently succeed"
+applies to the Telegram *send*, not to best-effort display translation
+of an already-real headline) and never blocks or fails the workflow.
+A day with a fully-untranslated (English) brief is an accepted, tested
+degradation mode, not a bug -- verified via
+`test_translate_falls_back_to_original_after_max_retries`.
+
+Known live risk: this specific unofficial endpoint returned an
+anti-automation block page when called directly from one non-GitHub
+network during testing. It is unofficial/undocumented and can be
+rate-limited or blocked by Google at any time without notice, from any
+network including GitHub Actions runners.
+
 ## Schedule / timezone
 
 Cron `30 4 * * *` = **07:30 daily, fixed UTC+3** -- matches the

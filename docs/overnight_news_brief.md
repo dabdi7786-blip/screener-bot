@@ -82,7 +82,12 @@ Known live risk: this specific unofficial endpoint returned an
 anti-automation block page when called directly from one non-GitHub
 network during testing. It is unofficial/undocumented and can be
 rate-limited or blocked by Google at any time without notice, from any
-network including GitHub Actions runners.
+network including GitHub Actions runners. Confirmed live from the
+actual production network on 2026-09-21 (run `35569955231`): zero
+translation-fallback warnings logged across ~300 translated strings,
+run duration rose from ~9s to ~29s (consistent with real translation
+calls succeeding, not silently no-op'ing) -- but this is a point-in-time
+result, not a guarantee it stays unblocked.
 
 ## Schedule / timezone
 

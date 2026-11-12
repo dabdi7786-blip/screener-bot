@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Screener — 12.11.2026</title>
+<style>
+:root{--bg:#0F1117;--bg2:#1A1D27;--bg3:#22263A;--text:#E2E8F0;--muted:#94A3B8;
+      --border:#2D3748;--green:#22C55E;--blue:#60A5FA;--amber:#F59E0B;
+      --purple:#A78BFA;--red:#F87171;--acc:#3B82F6;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px}
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:18px;font-weight:600}
+.meta{color:var(--muted);font-size:12px}
+nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap}
+.nav-btn{background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:5px 14px;border-radius:20px;cursor:pointer;font-size:12px;transition:all .15s}
+.nav-btn.active,.nav-btn:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+.nav-count{background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px}
+#dateSelect{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer}
+.section{display:none;padding:20px 24px}
+.section.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:16px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .15s}
+.card:hover{border-color:var(--acc)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ticker{font-size:16px;font-weight:700;color:var(--text)}
+.badge{padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.g{background:rgba(34,197,94,.15);color:var(--green)}
+.b{background:rgba(96,165,250,.15);color:var(--blue)}
+.a{background:rgba(245,158,11,.15);color:var(--amber)}
+.p{background:rgba(167,139,250,.15);color:var(--purple)}
+.r{background:rgba(248,113,113,.15);color:var(--red)}
+.score-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.bar{height:6px;border-radius:3px;background:var(--border);flex:1}
+.fill{height:100%;border-radius:3px}
+.kv{font-size:12px;color:var(--muted);line-height:1.8}
+.kv span{color:var(--text);font-weight:500}
+.sc-title{font-size:15px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.sc-desc{color:var(--muted);font-size:12px;margin-bottom:12px}
+.rates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px}
+.rates-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.rates-card h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.rate-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.rate-row:last-child{border-bottom:none}
+.rate-label{font-size:12px;color:var(--muted)}
+.rate-val{font-size:14px;font-weight:600;color:var(--text)}
+.delta-up{color:var(--green);font-size:11px;margin-left:4px}
+.delta-dn{color:var(--red);font-size:11px;margin-left:4px}
+.trend-up{color:var(--green)}
+.trend-dn{color:var(--red)}
+.trend-neu{color:var(--muted)}
+.empty{text-align:center;padding:60px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Stock Screener</h1>
+  <span class="meta">Дата: 12.11.2026 · Акций: 19</span>
+  <select id="dateSelect" onchange="location.href=this.value+location.hash" title="Выбрать дату"><option value="2026-11-12.html" selected>2026-11-12</option><option value="2026-11-11.html">2026-11-11</option><option value="2026-11-10.html">2026-11-10</option><option value="2026-11-09.html">2026-11-09</option><option value="2026-11-06.html">2026-11-06</option><option value="2026-11-05.html">2026-11-05</option><option value="2026-11-04.html">2026-11-04</option><option value="2026-11-03.html">2026-11-03</option><option value="2026-11-02.html">2026-11-02</option><option value="2026-10-30.html">2026-10-30</option><option value="2026-10-29.html">2026-10-29</option><option value="2026-10-28.html">2026-10-28</option><option value="2026-10-27.html">2026-10-27</option><option value="2026-10-26.html">2026-10-26</option><option value="2026-10-23.html">2026-10-23</option><option value="2026-10-22.html">2026-10-22</option><option value="2026-10-21.html">2026-10-21</option><option value="2026-10-20.html">2026-10-20</option><option value="2026-10-19.html">2026-10-19</option><option value="2026-10-16.html">2026-10-16</option><option value="2026-10-15.html">2026-10-15</option><option value="2026-10-14.html">2026-10-14</option><option value="2026-10-13.html">2026-10-13</option><option value="2026-10-12.html">2026-10-12</option><option value="2026-10-09.html">2026-10-09</option><option value="2026-10-08.html">2026-10-08</option><option value="2026-10-07.html">2026-10-07</option><option value="2026-10-06.html">2026-10-06</option><option value="2026-10-05.html">2026-10-05</option><option value="2026-10-02.html">2026-10-02</option><option value="2026-10-01.html">2026-10-01</option><option value="2026-09-30.html">2026-09-30</option><option value="2026-09-29.html">2026-09-29</option><option value="2026-09-28.html">2026-09-28</option><option value="2026-09-25.html">2026-09-25</option><option value="2026-09-24.html">2026-09-24</option><option value="2026-09-23.html">2026-09-23</option><option value="2026-09-22.html">2026-09-22</option><option value="2026-09-21.html">2026-09-21</option><option value="2026-09-18.html">2026-09-18</option><option value="2026-09-17.html">2026-09-17</option><option value="2026-09-16.html">2026-09-16</option><option value="2026-09-14.html">2026-09-14</option><option value="2026-09-11.html">2026-09-11</option><option value="2026-09-10.html">2026-09-10</option><option value="2026-09-09.html">2026-09-09</option><option value="2026-09-08.html">2026-09-08</option><option value="2026-09-07.html">2026-09-07</option><option value="2026-08-06.html">2026-08-06</option><option value="2026-08-05.html">2026-08-05</option><option value="2026-08-04.html">2026-08-04</option><option value="2026-08-03.html">2026-08-03</option><option value="2026-07-31.html">2026-07-31</option><option value="2026-07-30.html">2026-07-30</option><option value="2026-07-29.html">2026-07-29</option><option value="2026-07-28.html">2026-07-28</option><option value="2026-07-27.html">2026-07-27</option><option value="2026-07-24.html">2026-07-24</option><option value="2026-07-23.html">2026-07-23</option><option value="2026-07-22.html">2026-07-22</option><option value="2026-07-21.html">2026-07-21</option><option value="2026-07-20.html">2026-07-20</option><option value="2026-07-17.html">2026-07-17</option><option value="2026-07-16.html">2026-07-16</option><option value="2026-07-15.html">2026-07-15</option><option value="2026-07-14.html">2026-07-14</option><option value="2026-07-13.html">2026-07-13</option><option value="2026-07-10.html">2026-07-10</option><option value="2026-07-09.html">2026-07-09</option><option value="2026-07-08.html">2026-07-08</option><option value="2026-07-07.html">2026-07-07</option><option value="2026-07-06.html">2026-07-06</option></select>
+</header>
+<nav>
+  <button class="nav-btn" data-id="sc1" onclick="showSection('sc1')">🚀 Future S&P Leaders+ <span class="nav-count">8</span></button>
+  <button class="nav-btn" data-id="sc2" onclick="showSection('sc2')">📈 Growth v2 <span class="nav-count">3</span></button>
+  <button class="nav-btn" data-id="sc3" onclick="showSection('sc3')">🏆 Compounder <span class="nav-count">8</span></button>
+  <button class="nav-btn" data-id="rates" onclick="showSection('rates')">💹 Ставки</button>
+  <button class="nav-btn" data-id="ibkr" onclick="showSection('ibkr')">🏦 IBKR</button>
+</nav>
+<div class="section active" id="sc1"><div class="sc-title">🚀 Future S&P Leaders+</div><div class="sc-desc">Будущие лидеры S&P: рост >15%, PEG<2, Rule40>40</div><div class="grid"><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">MPWR <span style="font-size:11px;color:var(--muted)">⚡</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Monolithic Power Systems, In</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">10</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">3</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">2</span></span></div>
+  <div class="kv">
+    Rev: <span>+63.1%</span> &nbsp; EPS: <span>+47.3%</span> &nbsp; GM: <span>55.3%</span><br>
+    Rule40: <span>92.6 </span> &nbsp; PEG: <span>0.84</span> &nbsp; FwdPE: <span>31.9</span><br>
+    ROIC: <span>32.7%</span> &nbsp; FCFm: <span>13.5%</span>
+    &nbsp; RS: <span>+44.1% vs SPX</span>
+    <br>Upside: <span>+23.1%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 68.3 🟢 бычий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$1478.69</span> &nbsp; SL: <span style="color:var(--text)">$1335.4</span> (-9.7%) &nbsp; TP1: <span style="color:var(--text)">$1765.27</span> (+19.4%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">29.10.2026</span> — цена закрытия <span style="color:var(--text)">$1211.63</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">EOG <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">EOG Resources, Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">9</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">2</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">2</span></span></div>
+  <div class="kv">
+    Rev: <span>+42.7%</span> &nbsp; EPS: <span>+97.4%</span> &nbsp; GM: <span>63.0%</span><br>
+    Rule40: <span>78.2 </span> &nbsp; PEG: <span>1.16</span> &nbsp; FwdPE: <span>9.2</span><br>
+    ROIC: <span>23.0%</span> &nbsp; FCFm: <span>19.1%</span>
+    &nbsp; RS: <span>+34.7% vs SPX</span>
+    <br>Upside: <span>+9.2%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Energy</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 45.1 🟡 нейтральный</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$153.77</span> &nbsp; SL: <span style="color:var(--text)">$146.45</span> (-4.8%) &nbsp; TP1: <span style="color:var(--text)">$168.41</span> (+9.5%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">05.11.2026</span> — цена закрытия <span style="color:var(--text)">$147.13</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">APA <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">APA Corporation</div></div>
+    <span class="badge ">Hold</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">9</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">9</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">1</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">1</span></span></div>
+  <div class="kv">
+    Rev: <span>+31.5%</span> &nbsp; EPS: <span>+250.9%</span> &nbsp; GM: <span>79.0%</span><br>
+    Rule40: <span>74.8 </span> &nbsp; PEG: <span>1.16</span> &nbsp; FwdPE: <span>8.5</span><br>
+    ROIC: <span>30.3%</span> &nbsp; FCFm: <span>22.8%</span>
+    &nbsp; RS: <span>+90.0% vs SPX</span>
+    <br>Upside: <span>+7.3%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Energy</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 42.6 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$46.74</span> &nbsp; SL: <span style="color:var(--text)">$43.5</span> (-6.9%) &nbsp; TP1: <span style="color:var(--text)">$53.22</span> (+13.9%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">03.11.2026</span> — цена закрытия <span style="color:var(--text)">$44.49</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">KEYS <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Keysight Technologies Inc.</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">2</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">3</span></span></div>
+  <div class="kv">
+    Rev: <span>+36.5%</span> &nbsp; EPS: <span>+109.1%</span> &nbsp; GM: <span>63.3%</span><br>
+    Rule40: <span>56.3 </span> &nbsp; PEG: <span>0.61</span> &nbsp; FwdPE: <span>21.9</span><br>
+    ROIC: <span>15.3%</span> &nbsp; FCFm: <span>28.4%</span>
+    &nbsp; RS: <span>+54.9% vs SPX</span>
+    <br>Upside: <span>+37.3%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 48.1 🟡 нейтральный</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$305.64</span> &nbsp; SL: <span style="color:var(--text)">$280.41</span> (-8.3%) &nbsp; TP1: <span style="color:var(--text)">$356.1</span> (+16.5%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">18.08.2026</span> — цена закрытия <span style="color:var(--text)">$319.45</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">NXPI <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">NXP Semiconductors N.V.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">2</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">-1</span></span></div>
+  <div class="kv">
+    Rev: <span>+19.3%</span> &nbsp; EPS: <span>+40.3%</span> &nbsp; GM: <span>56.5%</span><br>
+    Rule40: <span>53.1 </span> &nbsp; PEG: <span>0.55</span> &nbsp; FwdPE: <span>14.7</span><br>
+    ROIC: <span>19.3%</span> &nbsp; FCFm: <span>29.6%</span>
+    &nbsp; RS: <span>+23.2% vs SPX</span>
+    <br>Upside: <span>+11.3%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 65.9 🟢 бычий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$269.51</span> &nbsp; SL: <span style="color:var(--text)">$248.86</span> (-7.7%) &nbsp; TP1: <span style="color:var(--text)">$310.81</span> (+15.3%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">27.10.2026</span> — цена закрытия <span style="color:var(--text)">$251.69</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">OXY <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Occidental Petroleum Corpora</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">2</span></span></div>
+  <div class="kv">
+    Rev: <span>+19.0%</span> &nbsp; EPS: <span>+149.4%</span> &nbsp; GM: <span>74.5%</span><br>
+    Rule40: <span>48.3 </span> &nbsp; PEG: <span>0.86</span> &nbsp; FwdPE: <span>11.0</span><br>
+    ROIC: <span>13.3%</span> &nbsp; FCFm: <span>19.7%</span>
+    &nbsp; RS: <span>+28.0% vs SPX</span>
+    <br>Upside: <span>+23.7%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Energy</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>↘️ Откат &nbsp; MACD 📉 медвежий &nbsp; RSI 31.4 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$57.24</span> &nbsp; SL: <span style="color:var(--text)">$54.35</span> (-5.0%) &nbsp; TP1: <span style="color:var(--text)">$63.02</span> (+10.1%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">09.11.2026</span> — цена закрытия <span style="color:var(--text)">$56.9</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">FANG <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Diamondback Energy, Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">1</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">1</span></span></div>
+  <div class="kv">
+    Rev: <span>+32.0%</span> &nbsp; EPS: <span>+62.1%</span> &nbsp; GM: <span>73.6%</span><br>
+    Rule40: <span>45.9 </span> &nbsp; PEG: <span>1.06</span> &nbsp; FwdPE: <span>8.3</span><br>
+    ROIC: <span>3.8%</span> &nbsp; FCFm: <span>34.2%</span>
+    &nbsp; RS: <span>+15.6% vs SPX</span>
+    <br>Upside: <span>+31.2%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Energy</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 35.9 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$180.98</span> &nbsp; SL: <span style="color:var(--text)">$170.66</span> (-5.7%) &nbsp; TP1: <span style="color:var(--text)">$201.62</span> (+11.4%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">02.11.2026</span> — цена закрытия <span style="color:var(--text)">$192.34</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">ADSK <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Autodesk, Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество+:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка+:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">👥Аналитики:<span style="color:var(--text);margin-left:2px">2</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">3</span></span> <span style="font-size:11px;color:var(--muted)">⚠️Риск+:<span style="color:var(--text);margin-left:2px">4</span></span></div>
+  <div class="kv">
+    Rev: <span>+16.1%</span> &nbsp; EPS: <span>+59.6%</span> &nbsp; GM: <span>92.5%</span><br>
+    Rule40: <span>44.2 </span> &nbsp; PEG: <span>0.87</span> &nbsp; FwdPE: <span>18.3</span><br>
+    ROIC: <span>58.9%</span> &nbsp; FCFm: <span>40.5%</span>
+    &nbsp; RS: <span>-25.0% vs SPX</span>
+    <br>Upside: <span>+18.6%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 53.8 🟡 нейтральный</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$260.01</span> &nbsp; SL: <span style="color:var(--text)">$246.24</span> (-5.3%) &nbsp; TP1: <span style="color:var(--text)">$287.55</span> (+10.6%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">27.08.2026</span> — цена закрытия <span style="color:var(--text)">$260.66</span></div></div>
+</div></div></div>
+<div class="section " id="sc2"><div class="sc-title">📈 Growth v2</div><div class="sc-desc">Быстрорастущие акции, топ-8 с sector cap</div><div class="grid"><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">SNDK <span style="font-size:11px;color:var(--muted)">⚡</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Sandisk Corporation</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">30</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество:<span style="color:var(--text);margin-left:2px">22</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка:<span style="color:var(--text);margin-left:2px">12</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">2</span></span> <span style="font-size:11px;color:var(--muted)">⚡Риск:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">🤖AI:<span style="color:var(--text);margin-left:2px">0</span></span></div>
+  <div class="kv">
+    Rev: <span>+377.9%</span> &nbsp; EPS: <span>+6913.3%</span> &nbsp; GM: <span>80.0%</span><br>
+    Rule40: <span>450.6 </span> &nbsp; PEG: <span>—</span> &nbsp; FwdPE: <span>3.4</span><br>
+    ROIC: <span>128.8%</span> &nbsp; FCFm: <span>38.8%</span>
+    &nbsp; RS: <span>+234.2% vs SPX</span>
+    <br>Upside: <span>+109.4%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 37.3 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$977.69</span> &nbsp; SL: <span style="color:var(--text)">$814.21</span> (-16.7%) &nbsp; TP1: <span style="color:var(--text)">$1304.65</span> (+33.4%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">29.10.2026</span> — цена закрытия <span style="color:var(--text)">$1150.89</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">PLTR <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Palantir Technologies Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">24</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество:<span style="color:var(--text);margin-left:2px">25</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">-3</span></span> <span style="font-size:11px;color:var(--muted)">⚡Риск:<span style="color:var(--text);margin-left:2px">8</span></span> <span style="font-size:11px;color:var(--muted)">🤖AI:<span style="color:var(--text);margin-left:2px">5</span></span></div>
+  <div class="kv">
+    Rev: <span>+95.9%</span> &nbsp; EPS: <span>+144.4%</span> &nbsp; GM: <span>84.7%</span><br>
+    Rule40: <span>141.5 </span> &nbsp; PEG: <span>1.41</span> &nbsp; FwdPE: <span>68.0</span><br>
+    ROIC: <span>632.7%</span> &nbsp; FCFm: <span>36.4%</span>
+    &nbsp; RS: <span>-17.6% vs SPX</span>
+    <br>Upside: <span>+28.9%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>↘️ Откат &nbsp; MACD 📉 медвежий &nbsp; RSI 31.6 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$172.4</span> &nbsp; SL: <span style="color:var(--text)">$157.94</span> (-8.4%) &nbsp; TP1: <span style="color:var(--text)">$201.32</span> (+16.8%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">02.11.2026</span> — цена закрытия <span style="color:var(--text)">$175.4</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">AVGO <span style="font-size:11px;color:var(--muted)">⚡</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Broadcom Inc.</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">10/10</span>
+    <div class="bar"><div class="fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">📊Рост:<span style="color:var(--text);margin-left:2px">30</span></span> <span style="font-size:11px;color:var(--muted)">💎Качество:<span style="color:var(--text);margin-left:2px">22</span></span> <span style="font-size:11px;color:var(--muted)">🏷️Оценка:<span style="color:var(--text);margin-left:2px">16</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">⚡Риск:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🤖AI:<span style="color:var(--text);margin-left:2px">5</span></span></div>
+  <div class="kv">
+    Rev: <span>+85.5%</span> &nbsp; EPS: <span>+215.3%</span> &nbsp; GM: <span>75.5%</span><br>
+    Rule40: <span>134.3 </span> &nbsp; PEG: <span>0.34</span> &nbsp; FwdPE: <span>17.7</span><br>
+    ROIC: <span>25.4%</span> &nbsp; FCFm: <span>34.3%</span>
+    &nbsp; RS: <span>-13.3% vs SPX</span>
+    <br>Upside: <span>+54.5%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📈 бычий &nbsp; RSI 56.6 🟢 бычий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$345.22</span> &nbsp; SL: <span style="color:var(--text)">$318.42</span> (-7.8%) &nbsp; TP1: <span style="color:var(--text)">$398.82</span> (+15.5%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">02.09.2026</span> — цена закрытия <span style="color:var(--text)">$356.51</span></div></div>
+</div></div></div>
+<div class="section " id="sc3"><div class="sc-title">🏆 Compounder</div><div class="sc-desc">ROIC>15%, FCFMargin>10%, GrossMargin>50%</div><div class="grid"><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">SNDK <span style="font-size:11px;color:var(--muted)">⚡</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Sandisk Corporation</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">9/10</span>
+    <div class="bar"><div class="fill" style="width:90%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">3</span></span></div>
+  <div class="kv">
+    Rev: <span>+377.9%</span> &nbsp; EPS: <span>+6913.3%</span> &nbsp; GM: <span>80.0%</span><br>
+    Rule40: <span>450.6 </span> &nbsp; PEG: <span>—</span> &nbsp; FwdPE: <span>3.4</span><br>
+    ROIC: <span>128.8%</span> &nbsp; FCFm: <span>38.8%</span>
+    &nbsp; RS: <span>+234.2% vs SPX</span>
+    <br>Upside: <span>+109.4%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 37.3 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$977.69</span> &nbsp; SL: <span style="color:var(--text)">$814.21</span> (-16.7%) &nbsp; TP1: <span style="color:var(--text)">$1304.65</span> (+33.4%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">29.10.2026</span> — цена закрытия <span style="color:var(--text)">$1150.89</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">ADSK <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Autodesk, Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">8/10</span>
+    <div class="bar"><div class="fill" style="width:80%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">0</span></span></div>
+  <div class="kv">
+    Rev: <span>+16.1%</span> &nbsp; EPS: <span>+59.6%</span> &nbsp; GM: <span>92.5%</span><br>
+    Rule40: <span>44.2 </span> &nbsp; PEG: <span>0.87</span> &nbsp; FwdPE: <span>18.3</span><br>
+    ROIC: <span>58.9%</span> &nbsp; FCFm: <span>40.5%</span>
+    &nbsp; RS: <span>-25.0% vs SPX</span>
+    <br>Upside: <span>+18.6%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 53.8 🟡 нейтральный</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$260.01</span> &nbsp; SL: <span style="color:var(--text)">$246.24</span> (-5.3%) &nbsp; TP1: <span style="color:var(--text)">$287.55</span> (+10.6%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">27.08.2026</span> — цена закрытия <span style="color:var(--text)">$260.66</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">V <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Visa Inc.</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">8/10</span>
+    <div class="bar"><div class="fill" style="width:80%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">3</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">3</span></span></div>
+  <div class="kv">
+    Rev: <span>+13.2%</span> &nbsp; EPS: <span>+21.9%</span> &nbsp; GM: <span>97.7%</span><br>
+    Rule40: <span>79.5 </span> &nbsp; PEG: <span>1.93</span> &nbsp; FwdPE: <span>24.8</span><br>
+    ROIC: <span>57.4%</span> &nbsp; FCFm: <span>45.7%</span>
+    &nbsp; RS: <span>+15.4% vs SPX</span>
+    <br>Upside: <span>+5.5%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Financial Services</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 57.6 🟢 бычий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$425.55</span> &nbsp; SL: <span style="color:var(--text)">$410.5</span> (-3.5%) &nbsp; TP1: <span style="color:var(--text)">$455.65</span> (+7.1%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">27.10.2026</span> — цена закрытия <span style="color:var(--text)">$399.86</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">NFLX <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Netflix, Inc.</div></div>
+    <span class="badge ">None</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">8/10</span>
+    <div class="bar"><div class="fill" style="width:80%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">5</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">1</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">0</span></span></div>
+  <div class="kv">
+    Rev: <span>+11.8%</span> &nbsp; EPS: <span>+47.5%</span> &nbsp; GM: <span>50.7%</span><br>
+    Rule40: <span>43.1 </span> &nbsp; PEG: <span>1.03</span> &nbsp; FwdPE: <span>17.1</span><br>
+    ROIC: <span>31.9%</span> &nbsp; FCFm: <span>51.2%</span>
+    &nbsp; RS: <span>-55.4% vs SPX</span>
+    <br>Upside: <span>+31.3%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Communication Services</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬇️ Нисходящий &nbsp; MACD 📈 бычий &nbsp; RSI 41.6 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$64.54</span> &nbsp; SL: <span style="color:var(--text)">$61.78</span> (-4.3%) &nbsp; TP1: <span style="color:var(--text)">$70.06</span> (+8.6%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">20.10.2026</span> — цена закрытия <span style="color:var(--text)">$65.04</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">CPAY <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Corpay, Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">8/10</span>
+    <div class="bar"><div class="fill" style="width:80%;background:var(--green)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">3</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">3</span></span></div>
+  <div class="kv">
+    Rev: <span>+17.9%</span> &nbsp; EPS: <span>+44.8%</span> &nbsp; GM: <span>80.8%</span><br>
+    Rule40: <span>67.7 </span> &nbsp; PEG: <span>0.88</span> &nbsp; FwdPE: <span>14.5</span><br>
+    ROIC: <span>17.8%</span> &nbsp; FCFm: <span>38.1%</span>
+    &nbsp; RS: <span>+49.9% vs SPX</span>
+    <br>Upside: <span>+6.5%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 75.9 🔴 перекуплен</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$461.95</span> &nbsp; SL: <span style="color:var(--text)">$438.76</span> (-5.0%) &nbsp; TP1: <span style="color:var(--text)">$508.33</span> (+10.0%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">04.11.2026</span> — цена закрытия <span style="color:var(--text)">$447.0</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">PLTR <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Palantir Technologies Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">7/10</span>
+    <div class="bar"><div class="fill" style="width:70%;background:var(--blue)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">0</span></span></div>
+  <div class="kv">
+    Rev: <span>+95.9%</span> &nbsp; EPS: <span>+144.4%</span> &nbsp; GM: <span>84.7%</span><br>
+    Rule40: <span>141.5 </span> &nbsp; PEG: <span>1.41</span> &nbsp; FwdPE: <span>68.0</span><br>
+    ROIC: <span>632.7%</span> &nbsp; FCFm: <span>36.4%</span>
+    &nbsp; RS: <span>-17.6% vs SPX</span>
+    <br>Upside: <span>+28.9%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>↘️ Откат &nbsp; MACD 📉 медвежий &nbsp; RSI 31.6 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$172.4</span> &nbsp; SL: <span style="color:var(--text)">$157.94</span> (-8.4%) &nbsp; TP1: <span style="color:var(--text)">$201.32</span> (+16.8%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">02.11.2026</span> — цена закрытия <span style="color:var(--text)">$175.4</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">VEEV <span style="font-size:11px;color:var(--muted)"></span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Veeva Systems Inc.</div></div>
+    <span class="badge ">Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">7/10</span>
+    <div class="bar"><div class="fill" style="width:70%;background:var(--blue)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">1</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">1</span></span></div>
+  <div class="kv">
+    Rev: <span>+17.6%</span> &nbsp; EPS: <span>+39.5%</span> &nbsp; GM: <span>75.0%</span><br>
+    Rule40: <span>47.5 </span> &nbsp; PEG: <span>1.18</span> &nbsp; FwdPE: <span>29.7</span><br>
+    ROIC: <span>237.9%</span> &nbsp; FCFm: <span>36.4%</span>
+    &nbsp; RS: <span>-8.6% vs SPX</span>
+    <br>Upside: <span>+6.2%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Healthcare</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📉 медвежий &nbsp; RSI 33.2 🟠 медвежий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$304.77</span> &nbsp; SL: <span style="color:var(--text)">$291.73</span> (-4.3%) &nbsp; TP1: <span style="color:var(--text)">$330.85</span> (+8.6%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">26.08.2026</span> — цена закрытия <span style="color:var(--text)">$282.13</span></div></div>
+</div><div class="card">
+  <div class="card-head">
+    <div><div class="ticker">ANET <span style="font-size:11px;color:var(--muted)">⚡</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:2px">Arista Networks, Inc.</div></div>
+    <span class="badge g">Strong Buy</span>
+  </div>
+  <div class="score-row">
+    <span style="font-size:13px;font-weight:700">7/10</span>
+    <div class="bar"><div class="fill" style="width:70%;background:var(--blue)"></div></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted)">🔄ROIC:<span style="color:var(--text);margin-left:2px">7</span></span> <span style="font-size:11px;color:var(--muted)">💎FCF Маржа:<span style="color:var(--text);margin-left:2px">4</span></span> <span style="font-size:11px;color:var(--muted)">📈EPS Рост:<span style="color:var(--text);margin-left:2px">6</span></span> <span style="font-size:11px;color:var(--muted)">🔁Байбэк:<span style="color:var(--text);margin-left:2px">1</span></span> <span style="font-size:11px;color:var(--muted)">🏰Моат:<span style="color:var(--text);margin-left:2px">0</span></span> <span style="font-size:11px;color:var(--muted)">📈Моментум:<span style="color:var(--text);margin-left:2px">3</span></span></div>
+  <div class="kv">
+    Rev: <span>+58.5%</span> &nbsp; EPS: <span>+82.1%</span> &nbsp; GM: <span>62.9%</span><br>
+    Rule40: <span>102.3 </span> &nbsp; PEG: <span>1.43</span> &nbsp; FwdPE: <span>32.6</span><br>
+    ROIC: <span>197.2%</span> &nbsp; FCFm: <span>25.2%</span>
+    &nbsp; RS: <span>+34.5% vs SPX</span>
+    <br>Upside: <span>+26.9%</span>
+  </div>
+  <div style="margin-top:8px;font-size:11px;color:var(--muted)">Technology</div>
+  <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6"><div>⬆️ Восходящий &nbsp; MACD 📈 бычий &nbsp; RSI 61.4 🟢 бычий</div><div>Цена закрытия на 11.11.2026: <span style="color:var(--text)">$196.68</span> &nbsp; SL: <span style="color:var(--text)">$178.85</span> (-9.1%) &nbsp; TP1: <span style="color:var(--text)">$232.34</span> (+18.1%)</div><div>📅 Посл. отчёт: <span style="color:var(--text)">03.11.2026</span> — цена закрытия <span style="color:var(--text)">$178.48</span></div></div>
+</div></div></div>
+<div class="section" id="rates">
+<div class="sc-title">💹 Обзор ставок</div>
+<div class="sc-desc">НБРК · KASE · Валюты · Сырьё · US Treasury · Global Bonds</div>
+<div class="rates-grid">
+  <div class="rates-card"><h3>🇰🇿 НБРК — Монетарная политика</h3><div class="rate-row"><span class="rate-label">Базовая ставка</span><span class="rate-val">15.75%</span></div><div class="rate-row"><span class="rate-label">Коридор верх</span><span class="rate-val">16.75%</span></div><div class="rate-row"><span class="rate-label">Коридор низ</span><span class="rate-val">14.75%</span></div><div class="rate-row"><span class="rate-label">Инфляция</span><span class="rate-val">9.20%</span></div></div>
+  <div class="rates-card"><h3>🏦 KASE — Денежный рынок</h3><div class="rate-row"><span class="rate-label">TONIA</span><span class="rate-val">15.44%<span class="delta-up">↑+0.28</span></span></div><div class="rate-row"><span class="rate-label">TWINA</span><span class="rate-val">15.75%<span class="delta-up">↑+0.14</span></span></div></div>
+  <div class="rates-card"><h3>💱 Валюты</h3><div class="rate-row"><span class="rate-label">USD/KZT</span><span class="rate-val">443.98 ₸<span class="delta-dn">↓-2.81</span></span></div><div class="rate-row"><span class="rate-label">EUR/KZT</span><span class="rate-val">491.93 ₸<span class="delta-dn">↓-5.33</span></span></div><div class="rate-row"><span class="rate-label">RUB/KZT</span><span class="rate-val">5.36 ₸<span class="delta-dn">↓-0.05</span></span></div><div class="rate-row"><span class="rate-label">TRY/KZT</span><span class="rate-val">8.84 ₸<span class="delta-dn">↓-0.06</span></span></div></div>
+  <div class="rates-card"><h3>🛢️ Сырьевые товары</h3><div class="rate-row"><span class="rate-label">Нефть (WTI)</span><span class="rate-val">87.15 $<span class="delta-dn">↓-0.17</span> <span class="delta-dn" style="font-size:10px">30д -8.3%</span></span></div><div class="rate-row"><span class="rate-label">Золото</span><span class="rate-val">3919.20 $<span class="delta-dn">↓-133.40</span> <span class="delta-dn" style="font-size:10px">30д -4.6%</span></span></div><div class="rate-row"><span class="rate-label">Серебро</span><span class="rate-val">50.77 $<span class="delta-dn">↓-2.12</span> <span class="delta-dn" style="font-size:10px">30д -8.6%</span></span></div><div class="rate-row"><span class="rate-label">Медь (LME)</span><span class="rate-val">13875.50 $/т<span class="delta-dn">↓-116.50</span> <span class="delta-dn" style="font-size:10px">30д -6.4%</span></span></div><div class="rate-row"><span class="rate-label">Уран (U3O8)</span><span class="rate-val">90.55 $<span class="delta-dn">↓-0.40</span></span></div></div>
+  <div class="rates-card"><h3>🇺🇸 США — Ставки и трежерис</h3><div class="rate-row"><span class="rate-label">Fed Rate (EFFR)</span><span class="rate-val">—</span></div><div class="rate-row"><span class="rate-label">T3M</span><span class="rate-val">4.11%</span></div><div class="rate-row"><span class="rate-label">T5Y</span><span class="rate-val">4.89%<span class="delta-up">↑+0.08</span></span></div><div class="rate-row"><span class="rate-label">T10Y</span><span class="rate-val">5.05%<span class="delta-up">↑+0.07</span></span></div><div class="rate-row"><span class="rate-label">T30Y</span><span class="rate-val">5.39%<span class="delta-up">↑+0.04</span></span></div></div>
+  <div class="rates-card"><h3>🌍 Мировые облигации (10Y)</h3><div class="rate-row"><span class="rate-label">🇩🇪 DE 10Y</span><span class="rate-val">3.34%</span></div></div>
+</div>
+</div>
+<div class="section" id="ibkr">
+<div class="sc-title">🏦 Interactive Brokers</div>
+<div class="sc-desc">Котировки watchlist · Счёт · Позиции (paper) · снэпшот от 17.07.2026 10:00</div>
+<div class="rates-grid">
+  <div class="rates-card"><h3>📈 Котировки</h3><div class="rate-row"><span class="rate-label">AAPL</span><span class="rate-val">333.26 $</span></div><div class="rate-row"><span class="rate-label">MSFT</span><span class="rate-val">401.10 $</span></div><div class="rate-row"><span class="rate-label">SPY</span><span class="rate-val">750.72 $</span></div></div>
+  <div class="rates-card"><h3>💼 Счёт</h3><div class="rate-row"><span class="rate-label">Net Liquidation</span><span class="rate-val">1000086.08 $</span></div><div class="rate-row"><span class="rate-label">Cash</span><span class="rate-val">1000000.00 $</span></div><div class="rate-row"><span class="rate-label">Buying power</span><span class="rate-val">4000000.00 $</span></div><div class="rate-row"><span class="rate-label">Unrealized P&L</span><span class="rate-val">0.00 $</span></div></div>
+  <div class="rates-card"><h3>📊 Позиции</h3><div class="rate-row"><span class="rate-label" style="color:var(--muted)">нет открытых позиций / данные недоступны</span></div></div>
+</div>
+</div>
+<script>
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  var sec = document.getElementById(id);
+  var btn = document.querySelector('.nav-btn[data-id="' + id + '"]');
+  if (sec) sec.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+// Deep-link: открыть нужную вкладку по #sc1 / #sc2 / #sc3 / #rates / #ibkr из ссылки
+(function(){
+  var valid = ['sc1','sc2','sc3','rates','ibkr'];
+  var hash  = (location.hash || '').replace('#', '');
+  showSection(valid.indexOf(hash) !== -1 ? hash : 'sc1');
+})();
+</script>
+</body>
+</html>

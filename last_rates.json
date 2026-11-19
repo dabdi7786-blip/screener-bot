@@ -6,30 +6,30 @@
     "corridor_lower": 14.75
   },
   "kase": {
-    "tonia": 14.8,
-    "twina": 15.28
+    "tonia": 14.79,
+    "twina": 15.26
   },
   "us": {
     "t3m": 4.15,
-    "t5y": 4.93,
-    "t10y": 5.11,
-    "t30y": 5.45
+    "t5y": 4.9,
+    "t10y": 5.08,
+    "t30y": 5.42
   },
   "bonds": {},
   "currency": {
-    "usd_kzt": 444.34,
-    "eur_kzt": 487.46,
-    "rub_kzt": 5.406,
-    "try_kzt": 8.823
+    "usd_kzt": 449.64,
+    "eur_kzt": 494.63,
+    "rub_kzt": 5.496,
+    "try_kzt": 8.911
   },
   "commodities": {
-    "oil_price": 83.9,
-    "oil_chg30d": -17.58,
-    "gold_price": 3778.9,
-    "gold_chg30d": -8.78,
-    "silver_price": 45.71,
-    "silver_chg30d": -20.79,
-    "copper_price": 13225.5,
-    "copper_chg30d": -9.38
+    "oil_price": 83.49,
+    "oil_chg30d": -14.06,
+    "gold_price": 3713.7,
+    "gold_chg30d": -10.51,
+    "silver_price": 45.12,
+    "silver_chg30d": -21.42,
+    "copper_price": 12750.0,
+    "copper_chg30d": -12.04
   }
 }
